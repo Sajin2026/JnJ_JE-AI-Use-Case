@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI-Guided Journal Posting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3F3F3; --surface:#FFFFFF; --surface-2:#F9F9F9; --ink:#1F1F1F; --muted:#5E5E5E; --faint:#8C8C8C;
+  --line:#E2E2E2; --line-2:#EFEFEF;
+  --blue:#9B0E00; --blue-soft:#FCEBEA; --purple:#B0261A; --purple-soft:#FDE7E7;
+  --grad:linear-gradient(135deg,#8A0C00 0%,#A61205 100%);
+  --grad-soft:linear-gradient(135deg,rgba(155,14,0,.07),rgba(176,38,26,.10));
+  --green:#0F7B3F; --green-bg:#E6F4EC; --amber:#A86400; --amber-bg:#FFF3DD; --red:#C0152F; --red-bg:#FDECEF;
+  --user-bubble:#9B0E00; --user-ink:#FFFFFF; --ai-bubble:#FDE7E7; --topbar:#9B0E00;
+  --shadow:0 1px 2px rgba(18,26,58,.05),0 4px 16px rgba(18,26,58,.06);
+  --shadow-lg:0 2px 6px rgba(18,26,58,.06),0 16px 40px rgba(18,26,58,.10);
+  --font:"Segoe UI Variable Text","Segoe UI","Figtree",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#141111; --surface:#1D1818; --surface-2:#231D1D; --ink:#F2ECEB; --muted:#B8ABA9; --faint:#8E8280;
+    --line:#3A2A2A; --line-2:#2E2222; --blue:#FF8A7A; --blue-soft:#3A1A17; --purple:#FF9C8F; --purple-soft:#3A1D1A; --ai-bubble:#2E1B1A; --topbar:#6E0A00;
+    --green:#4CC67E; --green-bg:#12311F; --amber:#F2B04A; --amber-bg:#3A2B0E; --red:#FF7A8F; --red-bg:#3B1722;
+    --user-bubble:#8A0C00;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25); --shadow-lg:0 16px 40px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141111; --surface:#1D1818; --surface-2:#231D1D; --ink:#F2ECEB; --muted:#B8ABA9; --faint:#8E8280;
+  --line:#3A2A2A; --line-2:#2E2222; --blue:#FF8A7A; --blue-soft:#3A1A17; --purple:#FF9C8F; --purple-soft:#3A1D1A; --ai-bubble:#2E1B1A; --topbar:#6E0A00;
+  --green:#4CC67E; --green-bg:#12311F; --amber:#F2B04A; --amber-bg:#3A2B0E; --red:#FF7A8F; --red-bg:#3B1722;
+  --user-bubble:#8A0C00;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25); --shadow-lg:0 16px 40px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+.notice{display:flex;align-items:center;justify-content:center;gap:8px;padding:7px 16px;font-size:12.5px;color:var(--muted);background:var(--surface);border-bottom:1px solid var(--line);text-align:center}
+.notice svg{flex:none;color:var(--purple)}
+.topbar{background:var(--topbar);color:#fff;margin-bottom:20px}
+header.top{max-width:1360px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:14px;min-width:0}
+.logo{width:44px;height:44px;border-radius:12px;background:#fff;display:grid;place-items:center;color:#9B0E00;flex:none}
+.brand h1{margin:0;font-size:22px;font-weight:650;letter-spacing:-.01em;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.brand p{margin:2px 0 0;color:rgba(255,255,255,.82);font-size:14px}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:3px 10px 3px 8px;border-radius:999px;background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.35)}
+.top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.seg{display:inline-flex;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.25);border-radius:11px;padding:3px;box-shadow:var(--shadow)}
+.seg button{border:0;background:none;padding:7px 14px;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;color:rgba(255,255,255,.85);display:inline-flex;align-items:center;gap:7px}
+.seg button[aria-pressed="true"]{background:#fff;color:#9B0E00}
+.sdot{width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 3px var(--amber-bg)}
+.newbtn{display:inline-flex;align-items:center;gap:8px;border:1px solid #fff;background:#fff;color:#9B0E00;padding:9px 16px;border-radius:10px;font-weight:600;cursor:pointer;box-shadow:var(--shadow)}
+.newbtn:hover{background:#FDE7E7}
+.topbar :focus-visible{outline-color:#fff}
+
+.app{max-width:1360px;margin:0 auto;padding:0 24px 24px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+.chat-panel{display:flex;flex-direction:column;height:calc(100vh - 170px);min-height:600px;overflow:hidden}
+.chat-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line-2)}
+.chat-head .who{display:flex;align-items:center;gap:10px;font-weight:600}
+.online{font-size:12px;font-weight:500;color:var(--green);display:inline-flex;align-items:center;gap:6px}
+.online::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--green)}
+.stage{font-size:12.5px;color:var(--muted)}
+#chat{flex:1;overflow-y:auto;padding:24px 22px 32px;background:
+  radial-gradient(600px 240px at 100% 0%,rgba(155,14,0,.05),transparent 70%),
+  radial-gradient(500px 220px at 0% 100%,rgba(155,14,0,.05),transparent 70%)}
+.chat-foot{padding:10px 20px;border-top:1px solid var(--line-2);font-size:12px;color:var(--faint);display:flex;align-items:center;gap:8px}
+
+.row{display:flex;gap:12px;margin:0 0 18px;align-items:flex-start;animation:rise .35s cubic-bezier(.2,.7,.3,1) both}
+.row.user{flex-direction:row-reverse}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.av{width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12.5px;font-weight:700}
+.av.ai{background:var(--grad);color:#fff;box-shadow:0 3px 10px rgba(155,14,0,.3)}
+.av.me{background:var(--blue-soft);color:var(--blue);border:1px solid var(--line)}
+.stack{display:flex;flex-direction:column;gap:10px;min-width:0;max-width:min(700px,100%);flex:1}
+.row.user .stack{align-items:flex-end;gap:4px}
+.bubble{background:var(--surface);border:1px solid var(--line);padding:11px 15px;border-radius:4px 16px 16px 16px;box-shadow:var(--shadow);width:fit-content;max-width:100%;animation:rise .3s ease both}
+.row.ai .bubble{background:var(--ai-bubble);border-color:transparent;box-shadow:none}
+.row.ai .bubble.error{background:var(--red-bg);border-color:rgba(192,21,47,.35);color:var(--red)}
+.row.ai .bubble.ok{background:var(--green-bg);border-color:rgba(15,123,63,.25)}
+.row.ai .bubble.warnb{background:var(--amber-bg);border-color:rgba(168,100,0,.3)}
+.row.user .bubble{background:var(--user-bubble);color:var(--user-ink);border-color:transparent;border-radius:16px 4px 16px 16px}
+.bubble.error{background:var(--red-bg);border-color:rgba(196,49,75,.3)}
+.bubble.ok{background:var(--green-bg);border-color:rgba(15,123,63,.25)}
+.bubble.warnb{background:var(--amber-bg);border-color:rgba(168,100,0,.3)}
+.bubble .ctx{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--purple);background:var(--purple-soft);border-radius:999px;padding:2px 9px;margin-bottom:6px}
+.quote{margin:6px 0;padding:6px 10px;border-left:3px solid currentColor;font-style:italic;opacity:.9}
+.edit-link{border:0;background:none;color:var(--faint);font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:2px 4px;border-radius:6px}
+.edit-link:hover{color:var(--blue);background:var(--blue-soft)}
+body.no-edit .edit-link,body.no-edit .edit-tip{display:none}
+details.why{margin-top:6px;font-size:13px;color:var(--muted)}
+details.why summary{cursor:pointer;color:var(--purple);font-weight:600;width:fit-content}
+details.why[open] summary{margin-bottom:4px}
+.file-chip{display:inline-flex;align-items:center;gap:8px}
+.typing{display:inline-flex;gap:5px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:4px 16px 16px 16px;width:fit-content;box-shadow:var(--shadow)}
+.typing span{width:7px;height:7px;border-radius:50%;background:var(--purple);opacity:.35;animation:blink 1.1s infinite}
+.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
+@keyframes blink{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+.status-line{display:flex;align-items:center;gap:10px}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--blue);animation:spin .8s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.thinking{background-image:linear-gradient(90deg,var(--muted) 0%,var(--purple) 40%,var(--blue) 60%,var(--muted) 100%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shimmer 1.6s linear infinite;font-weight:600}
+@keyframes shimmer{to{background-position:-200% 0}}
+
+.widget{animation:rise .35s ease both;width:100%}
+.widget.locked{pointer-events:none;opacity:.55}
+.widget.locked [data-pdf]{pointer-events:auto}
+.widget.locked.keep{opacity:1}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);padding:7px 14px;border-radius:999px;cursor:pointer;font-weight:500;font-size:14px;transition:all .15s;display:inline-flex;align-items:center;gap:6px;text-align:left}
+.chip:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
+.chip.sel{background:var(--blue);border-color:var(--blue);color:#fff}
+.chip .sug{font-size:10.5px;font-weight:700;color:var(--purple);background:var(--purple-soft);padding:1px 6px;border-radius:999px}
+.chip.sel .sug{background:rgba(255,255,255,.2);color:#fff}
+.inline-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.field{border:1.5px solid #CFCFCF;background:var(--surface);border-radius:10px;padding:9px 12px;min-width:0}
+.field:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(155,14,0,.15)}
+select.field{min-width:220px;cursor:pointer}
+select.field.wide{width:340px}
+input.field{width:240px}
+input.field.wide{width:340px}
+textarea.field{width:100%;min-height:78px;resize:vertical}
+.hint{font-size:12.5px;color:var(--faint);margin-top:6px}
+.hint.err{color:var(--red)}
+.upl-label{font-size:13px;color:var(--muted);margin:0 0 6px}
+.btn{border:1px solid transparent;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:transform .1s,box-shadow .15s}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:#9B0E00;color:#fff;border-radius:999px;padding:9px 20px}
+.btn.primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.btn.solid{background:var(--blue);color:#fff;border-radius:999px}
+.btn.sm{padding:5px 12px;font-size:13px}
+.btn.ghost{background:var(--surface);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--blue);color:var(--blue)}
+.btn.approve{background:var(--green);color:#fff}
+.btn.danger{background:var(--surface);border-color:var(--line);color:var(--red)}
+.btn.danger:hover{border-color:var(--red)}
+.btn.link{background:none;padding:4px 2px;color:var(--purple);font-weight:600}
+.btn.link:hover{text-decoration:underline}
+.btn.demo{font-size:12.5px;padding:5px 11px;background:var(--surface-2);border:1px dashed var(--line);color:var(--muted);border-radius:8px}
+.btn.demo:hover{color:var(--purple);border-color:var(--purple)}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;align-items:center}
+
+.types{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.type{text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:14px;cursor:pointer;display:flex;gap:12px;align-items:flex-start;transition:border-color .15s,box-shadow .15s}
+.type:hover{border-color:var(--blue);box-shadow:var(--shadow-lg)}
+.type.sel{border-color:var(--blue);background:var(--blue-soft)}
+.sug-tag{display:inline-block;font-size:10.5px;font-weight:700;color:var(--purple);background:var(--purple-soft);padding:1px 7px;border-radius:999px;margin-left:4px;vertical-align:2px}
+.risk{border-color:rgba(168,100,0,.35)}
+.risk .checks li{align-items:center}
+.risk .edit-link{white-space:nowrap}
+.type .ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;flex:none;background:var(--grad-soft);color:var(--purple)}
+.type b{display:block;font-size:15px;margin-bottom:2px}
+.type span{font-size:13px;color:var(--muted);line-height:1.4}
+.more-wrap{margin-top:10px}
+.unsure{margin-top:8px;display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--muted);flex-wrap:wrap}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+.card-h{padding:12px 16px;border-bottom:1px solid var(--line-2);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.card-h h3{margin:0;font-size:14.5px;font-weight:650;display:flex;align-items:center;gap:8px}
+.card-b{padding:14px 16px}
+.ai-card{border:1px solid transparent;background:linear-gradient(var(--surface),var(--surface)) padding-box,var(--grad) border-box}
+.proc ul{margin:0;padding:0}
+.proc li{list-style:none;display:flex;align-items:center;gap:10px;padding:6px 0;color:var(--faint)}
+.proc li.run,.proc li.done{color:var(--ink)}
+.proc .dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);flex:none}
+.done-mark{width:18px;height:18px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;flex:none;animation:pop .3s ease}
+.warn-mark{width:18px;height:18px;border-radius:50%;background:var(--amber);color:#fff;display:grid;place-items:center;flex:none;font-size:12px;font-weight:800}
+@keyframes pop{from{transform:scale(.4)}to{transform:scale(1)}}
+.done-mark svg{width:11px;height:11px}
+.tpl-name{font-weight:650}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line-2);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:520px}
+th{background:var(--surface-2);text-align:left;font-weight:600;color:var(--muted);padding:8px 12px;border-bottom:1px solid var(--line-2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line-2);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.totals{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:13.5px}
+.totals .t{display:flex;gap:18px;flex-wrap:wrap;color:var(--muted)}
+.totals b{color:var(--ink);font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:650;padding:4px 11px;border-radius:999px;white-space:nowrap}
+.pill.green{background:var(--green-bg);color:var(--green)}
+.pill.amber{background:var(--amber-bg);color:var(--amber)}
+.pill.red{background:var(--red-bg);color:var(--red)}
+.pill.blue{background:var(--blue-soft);color:var(--blue)}
+.pill.grey{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.pill.pulse::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;animation:blink 1.4s infinite}
+.checks{list-style:none;margin:0;padding:0}
+.checks li{display:flex;align-items:flex-start;gap:10px;padding:6px 0}
+.checks li>span:first-child{margin-top:2px}
+
+.drop{border:1.5px dashed var(--line);border-radius:14px;padding:22px 16px;text-align:center;background:var(--surface);cursor:pointer;transition:all .15s}
+.drop:hover,.drop.over{border-color:var(--blue);background:var(--blue-soft)}
+.drop .ic{width:44px;height:44px;margin:0 auto 8px;border-radius:12px;background:var(--grad-soft);display:grid;place-items:center;color:var(--purple)}
+.drop b{display:block}
+.drop small{color:var(--faint)}
+.samples{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:13px;color:var(--muted)}
+.progress{height:6px;border-radius:99px;background:var(--line-2);overflow:hidden;width:220px;max-width:100%;margin-top:8px}
+.progress i{display:block;height:100%;width:0;background:var(--grad);transition:width .9s ease}
+
+.sum-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 24px}
+.kv{display:flex;flex-direction:column;min-width:0}
+.kv small{color:var(--faint);font-size:12px}
+.kv span{font-weight:600;overflow-wrap:anywhere}
+.jlines{margin-top:14px;border-top:1px solid var(--line-2);padding-top:12px}
+.jl{display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px}
+.jl em{font-style:normal;color:var(--muted);margin-right:6px}
+.jl b{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.approval{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+.flow{display:flex;flex-direction:column}
+.node{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface);transition:all .3s}
+.node .n-ic{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--surface-2);color:var(--faint);flex:none;border:1px solid var(--line)}
+.node b{display:block;font-size:14px}
+.node small{color:var(--muted);font-size:12px}
+.node.done{border-color:rgba(15,123,63,.35);background:var(--green-bg)}
+.node.done .n-ic{background:var(--green);color:#fff;border-color:transparent}
+.node.current{border-color:rgba(168,100,0,.45);background:var(--amber-bg)}
+.node.current .n-ic{background:var(--amber);color:#fff;border-color:transparent}
+.node.bad{border-color:rgba(196,49,75,.4);background:var(--red-bg)}
+.node.bad .n-ic{background:var(--red);color:#fff;border-color:transparent}
+.arrow{height:18px;display:grid;place-items:center;color:var(--faint)}
+.timeline{list-style:none;margin:0;padding:0}
+.timeline li{position:relative;padding:0 0 14px 28px;font-size:14px}
+.timeline li::before{content:"";position:absolute;left:8px;top:18px;bottom:-2px;width:2px;background:var(--line)}
+.timeline li:last-child::before{display:none}
+.timeline .d{position:absolute;left:0;top:2px;width:18px;height:18px;border-radius:50%;border:2px solid var(--line);background:var(--surface);display:grid;place-items:center}
+.timeline .d svg{width:10px;height:10px}
+.timeline li.done .d{background:var(--green);border-color:var(--green);color:#fff}
+.timeline li.done::before{background:var(--green)}
+.timeline li.pending .d{border-color:var(--amber);background:var(--amber-bg)}
+.timeline li.pending .tl-l{color:var(--amber);font-weight:600}
+.timeline li.bad .d{background:var(--red);border-color:var(--red);color:#fff}
+.timeline li.bad .tl-l{color:var(--red);font-weight:600}
+.timeline small{display:block;color:var(--faint);font-size:12px}
+.sim{margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px dashed var(--line);padding-top:12px}
+
+.success{text-align:center;padding:26px 18px 20px;background:radial-gradient(300px 140px at 50% 0%,rgba(15,123,63,.12),transparent 70%),var(--surface)}
+.success .big{width:64px;height:64px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;margin:0 auto 12px;box-shadow:0 0 0 8px var(--green-bg);animation:pop .45s cubic-bezier(.2,1.4,.4,1)}
+.success h2{margin:0 0 4px;font-size:21px}
+.success p{margin:0 0 16px;color:var(--muted);font-size:14px}
+.docno{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;text-align:left}
+.docno .kv{background:var(--surface-2);border:1px solid var(--line-2);border-radius:10px;padding:10px 12px}
+
+.side{position:sticky;top:16px;overflow:hidden}
+.side-h{padding:16px 18px 12px;border-bottom:1px solid var(--line-2);display:flex;align-items:center;justify-content:space-between}
+.side-h h2{margin:0;font-size:16px;font-weight:650;display:flex;align-items:center;gap:8px}
+.live{font-size:11.5px;font-weight:600;color:var(--purple);display:inline-flex;align-items:center;gap:5px}
+.live::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--purple);animation:blink 1.6s infinite}
+.fields{padding:6px 12px 8px 18px}
+.f{display:grid;grid-template-columns:auto minmax(0,1fr) 26px;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line-2);font-size:14px}
+.f:last-child{border-bottom:0}
+.fl{color:var(--muted)}
+.fv{text-align:right;font-weight:600;display:flex;align-items:center;gap:6px;justify-content:flex-end;min-width:0;overflow-wrap:anywhere}
+.fv.empty{color:var(--faint);font-weight:400}
+.fv.editing{color:var(--amber);font-weight:600;font-size:13px}
+.f.flash .fv{animation:flash 1.1s ease}
+@keyframes flash{0%{background:var(--purple-soft);border-radius:6px}100%{background:transparent}}
+.vt{color:var(--green);flex:none}
+.f.hidden{display:none}
+.fedit{border:0;background:none;width:26px;height:26px;border-radius:7px;display:grid;place-items:center;cursor:pointer;color:var(--faint);visibility:hidden}
+.f.filled .fedit{visibility:visible;opacity:.55}
+.f:hover .fedit,.fedit:focus-visible{opacity:1}
+.fedit:hover{background:var(--blue-soft);color:var(--blue)}
+body.no-edit .fedit{visibility:hidden!important}
+.edit-tip{margin:0 18px 12px;font-size:12px;color:var(--faint);display:flex;gap:6px;align-items:center}
+.prog{padding:14px 18px 18px;border-top:1px solid var(--line-2);background:var(--surface-2)}
+.prog h3{margin:0 0 4px;font-size:13px;font-weight:650;display:flex;justify-content:space-between;color:var(--muted)}
+.bar{height:6px;background:var(--line);border-radius:99px;overflow:hidden;margin:6px 0 12px}
+.bar i{display:block;height:100%;width:0;background:var(--grad);transition:width .6s ease}
+ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.steps li{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--faint)}
+.steps .sn{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:11.5px;font-weight:700;background:var(--surface);flex:none}
+.steps li.active,.steps li.pending,.steps li.done,.steps li.bad{color:var(--ink)}
+.steps li.active{font-weight:600}
+.steps li.active .sn{border-color:var(--blue);color:var(--blue);box-shadow:0 0 0 3px rgba(155,14,0,.15)}
+.steps li.pending{font-weight:600}
+.steps li.pending .sn{border-color:var(--amber);color:var(--amber);background:var(--amber-bg)}
+.steps li.done .sn{background:var(--green);border-color:var(--green);color:#fff}
+.steps li.bad .sn{background:var(--red);border-color:var(--red);color:#fff}
+.steps .st{margin-left:auto;font-size:12px;font-weight:600}
+.steps li.done .st{color:var(--green)}
+.steps li.pending .st{color:var(--amber)}
+.steps li.active .st{color:var(--blue)}
+.steps li.bad .st{color:var(--red)}
+
+/* Approver */
+.appr{max-width:1360px;margin:0 auto;padding:0 24px 24px;display:grid;grid-template-columns:340px minmax(0,1fr);gap:20px;align-items:start}
+.inbox{position:sticky;top:16px;overflow:hidden}
+.inbox-h{padding:16px 18px;border-bottom:1px solid var(--line-2);display:grid;gap:12px}
+.inbox-h h2{margin:0;font-size:16px}
+.persona{display:flex;align-items:center;gap:10px}
+.persona .av{background:var(--purple-soft);color:var(--purple);border:1px solid var(--line)}
+.persona select.field{flex:1;min-width:0;width:100%}
+.sec-label{padding:12px 18px 6px;font-size:12.5px;color:var(--faint);font-weight:600}
+.inbox-empty{padding:4px 18px 12px;font-size:13px;color:var(--faint)}
+.inbox-item{display:block;width:100%;text-align:left;border:0;border-left:3px solid transparent;background:none;padding:11px 18px 11px 15px;cursor:pointer;border-bottom:1px solid var(--line-2)}
+.inbox-item:hover{background:var(--surface-2)}
+.inbox-item.sel{background:var(--blue-soft);border-left-color:var(--blue)}
+.ii-top{display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:14px}
+.ii-top .amt{font-variant-numeric:tabular-nums;white-space:nowrap}
+.ii-sub{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);margin-top:3px}
+.new{font-size:10.5px;font-weight:700;color:#fff;background:var(--blue);padding:1px 7px;border-radius:999px;margin-left:4px;vertical-align:1px}
+.detail{overflow:hidden}
+.d-head{padding:20px 24px;border-bottom:1px solid var(--line-2);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.d-head h2{margin:0 0 4px;font-size:19px}
+.d-head p{margin:0;color:var(--muted);font-size:13.5px}
+.d-amt{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.d-body{padding:20px 24px;display:grid;gap:18px}
+.d-body h4{margin:0 0 8px;font-size:13px;color:var(--muted);font-weight:600}
+.ai-sum{margin:0 0 10px}
+.ask{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line-2)}
+.ask-ans{margin-top:10px;background:var(--surface-2);border-radius:10px;padding:10px 12px;font-size:14px;animation:rise .3s ease both}
+.decision{border-top:1px solid var(--line);padding:16px 24px 20px;display:grid;gap:10px;background:var(--surface-2)}
+.decision h4{margin:0;font-size:14px}
+.result{border-top:1px solid var(--line);padding:16px 24px;background:var(--surface-2);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.empty-state{padding:80px 24px;text-align:center;color:var(--muted)}
+.empty-state .ic{width:56px;height:56px;border-radius:16px;background:var(--grad-soft);color:var(--purple);display:grid;place-items:center;margin:0 auto 12px}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:12px;font-size:14px;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:all .25s;z-index:50;max-width:calc(100% - 32px)}
+.toast.show{opacity:1;transform:translateX(-50%)}
+
+dialog{border:0;border-radius:18px;padding:0;max-width:720px;width:calc(100% - 32px);background:var(--surface);color:var(--ink);box-shadow:var(--shadow-lg)}
+dialog::backdrop{background:rgba(10,14,30,.45)}
+.dlg-h{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px}
+.dlg-h h2{margin:0;font-size:17px}
+.dlg-b{padding:18px 20px;max-height:70vh;overflow:auto;display:grid;gap:16px}
+.dlg-b h4{margin:0 0 8px;font-size:13px;color:var(--muted);font-weight:600}
+.x{border:0;background:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px}
+.x:hover{background:var(--surface-2)}
+
+@media (max-width:1040px){
+  .app,.appr{grid-template-columns:1fr}
+  .side,.inbox{position:static}
+  .chat-panel{height:auto;min-height:0;overflow:visible}
+  #chat{overflow:visible}
+}
+@media (max-width:640px){
+  header.top{padding:16px}
+  .app,.appr{padding:0 12px 16px}
+  .types,.sum-grid,.approval{grid-template-columns:1fr}
+  .docno{grid-template-columns:repeat(2,minmax(0,1fr))}
+  input.field,input.field.wide,select.field{width:100%;min-width:0}
+  .inline-form{flex-direction:column;align-items:stretch}
+  #chat{padding:18px 12px}
+  .av{width:28px;height:28px;font-size:11px}
+  .stage{display:none}
+  .d-head,.d-body,.decision{padding-left:16px;padding-right:16px}
+  .d-amt{text-align:left}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<div class="notice" role="note">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+  AI can help guide you through journal creation. Please review financial information before submission.
+</div>
+
+<div class="topbar"><header class="top">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>
+    </div>
+    <div>
+      <h1>AI-Guided Journal Posting <span class="badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 5.6L19.5 9.5 13.9 11.4 12 17l-1.9-5.6L4.5 9.5l5.6-1.9z"/></svg>AI Assistant</span></h1>
+      <p id="subtitle">Create and submit journal entries with step-by-step AI assistance</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <div class="seg" role="group" aria-label="Switch view">
+      <button type="button" data-view="creator" aria-pressed="true">Journal Creator</button>
+      <button type="button" data-view="approver" aria-pressed="false">Approver <span class="sdot" id="apDot" hidden></span></button>
+    </div>
+    <button class="newbtn" id="newJournal" type="button">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      New Journal
+    </button>
+  </div>
+</header></div>
+
+<main class="app" id="creatorView">
+  <section class="panel chat-panel" aria-label="Journal assistant conversation">
+    <div class="chat-head">
+      <div class="who">
+        <div class="av ai" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 5.6L19.5 9.5 13.9 11.4 12 17l-1.9-5.6L4.5 9.5l5.6-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></div>
+        <div>Journal Assistant<br><span class="online">Connected to SAP S/4HANA</span></div>
+      </div>
+      <div class="stage" id="stageLabel"></div>
+    </div>
+    <div id="chat" aria-live="polite"></div>
+    <div class="chat-foot">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Demo environment with sample data. No real postings are made.
+    </div>
+  </section>
+
+  <aside class="panel side" aria-label="Journal summary">
+    <div class="side-h">
+      <h2><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Journal Summary</h2>
+      <span class="live">Live</span>
+    </div>
+    <div class="fields" id="fields"></div>
+    <div class="edit-tip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Use the pencil on any answer to change it before submitting.</div>
+    <div class="prog">
+      <h3><span>Progress</span><span id="pct">0%</span></h3>
+      <div class="bar"><i id="barFill"></i></div>
+      <ol class="steps" id="steps"></ol>
+    </div>
+  </aside>
+</main>
+
+<main class="appr" id="approverView" hidden>
+  <aside class="panel inbox" aria-label="Approval inbox">
+    <div class="inbox-h">
+      <h2>My approvals</h2>
+      <div class="persona">
+        <div class="av" id="persAv">PR</div>
+        <div><b>Priya Raman</b><div class="hint" style="margin:0">Finance Manager</div></div>
+      </div>
+    </div>
+    <div id="inboxList"></div>
+  </aside>
+  <section class="panel detail" id="detail" aria-live="polite"></section>
+</main>
+
+<datalist id="ccList"></datalist>
+<div class="toast" id="toast" role="status"></div>
+
+<dialog id="dlg">
+  <div class="dlg-h"><h2 id="dlgTitle">Journal details</h2><button class="x" type="button" aria-label="Close" onclick="document.getElementById('dlg').close()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+  <div class="dlg-b" id="dlgBody"></div>
+</dialog>
+
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const chat=$('#chat');
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const ICON={
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  x:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  spark:'<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 5.6L19.5 9.5 13.9 11.4 12 17l-1.9-5.6L4.5 9.5l5.6-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>',
+  down:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>',
+  file:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>',
+  upload:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M20 16v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3"/></svg>',
+  user:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
+  db:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>',
+  clock:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  pencil:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  inbox:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></svg>'
+};
+const svgI=p=>'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';
+const TYPE_ICONS={
+  Accrual:svgI('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'),
+  Reclassification:svgI('<path d="M4 7h13l-3-3M20 17H7l3 3"/>'),
+  Adjustment:svgI('<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>'),
+  Reversal:svgI('<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>'),
+  Intercompany:svgI('<rect x="2" y="8" width="7" height="13"/><rect x="15" y="4" width="7" height="17"/><path d="M9 12h6M13 10l2 2-2 2"/>'),
+  Prepayment:svgI('<path d="M6 2h12M6 22h12M7 2c0 5 10 5 10 10S7 17 7 22M17 2c0 5-10 5-10 10s10 5 10 10"/>'),
+  Recurring:svgI('<path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/>'),
+  Allocation:svgI('<path d="M12 3v7M12 10l-7 7M12 10l7 7M12 10v11"/>'),
+  Closing:svgI('<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'),
+  Opening:svgI('<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/>'),
+  Payroll:svgI('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.8.8 3 2.5 3 5.2"/>'),
+  Revenue:svgI('<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>'),
+  Purchase:svgI('<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11.5l2-8H6.2"/>')
+};
+const TYPES=[
+  ['Accrual','Record an expense/revenue before the actual invoice or transaction is received.'],
+  ['Reclassification','Move an already recorded amount to the correct account, cost center, or classification.'],
+  ['Adjustment','Correct or adjust an amount that was previously recorded.'],
+  ['Reversal','Reverse or cancel a previous journal entry.']
+];
+const MORE_GROUPS=[
+  ['Transaction entries',[
+    ['Payroll','Record salaries, wages, bonuses and deductions from a payroll run.'],
+    ['Revenue','Record income from product sales, licensing, royalties or services.'],
+    ['Purchase','Record goods or services bought from a supplier.'],
+    ['Intercompany','Record a charge or recharge between two company codes in the group.']]],
+  ['Period-end entries',[
+    ['Closing','Close income and expense balances at year end and move the result to retained earnings.'],
+    ['Opening','Bring in starting balances for a new year, new entity or system go-live.'],
+    ['Prepayment','Spread a cost that was paid in advance over the months it covers.'],
+    ['Recurring','Post the same entry automatically every month or quarter.'],
+    ['Allocation','Share a cost from one cost center with the teams that benefit from it.']]]
+];
+const OPEN_MAP={'Bank balance':['110000','Bank - Main Account'],'Fixed assets':['150000','Plant and Equipment'],'Inventory':['130000','Inventory - Finished Goods']};
+const REV_MAP={'Product sales':['400100','Product Revenue'],'Licensing and royalties':['410200','Royalty Income'],'Services':['420300','Service Revenue']};
+const PUR_MAP={'Raw materials':['130100','Raw Materials Inventory'],'Lab consumables':['600200','Lab Supplies'],'Professional services':['600400','Professional Fees']};
+const EXTRA_BY_TYPE={Accrual:'reversal',Reclassification:'targetAcct',Reversal:'origDoc',Intercompany:'partner',Prepayment:'releaseMonths',Recurring:'frequency',Allocation:'receiverCC',Closing:'closeYear',Opening:'openBalance',Payroll:'payPeriod',Revenue:'revenueStream',Purchase:'purchaseItem'};
+const EXTRA_KEYS=Object.values(EXTRA_BY_TYPE);
+const CUR={USD:{s:'$',l:'en-US'},EUR:{s:'€',l:'de-DE'},INR:{s:'₹',l:'en-IN'},GBP:{s:'£',l:'en-GB'},CHF:{s:'CHF ',l:'de-CH'}};
+const COUNTRY_CUR={'United States':'USD','Germany':'EUR','India':'INR','United Kingdom':'GBP','Switzerland':'CHF'};
+const COMPANY_CODES=[
+  ['1000','J&J India - Innovative Medicine','India',true],
+  ['1010','J&J India - MedTech','India',true],
+  ['2000','J&J US - Innovative Medicine','United States',true],
+  ['2010','J&J US - MedTech','United States',true],
+  ['3000','J&J Germany - Innovative Medicine','Germany',true],
+  ['3010','J&J Germany - MedTech','Germany',true],
+  ['4000','J&J UK - Innovative Medicine','United Kingdom',true],
+  ['5000','J&J Switzerland - Innovative Medicine','Switzerland',true],
+  ['8000','J&J Global Business Services','Other',true],
+  ['9900','J&J Legacy Holding (inactive)','Other',false]
+];
+const CC_NAMES=Object.fromEntries(COMPANY_CODES.map(c=>[c[0],c[1]]));
+const VALID_CC=COMPANY_CODES.filter(c=>c[3]).map(c=>c[0]);
+const SYSTEM_GROUPS=[
+  ['ERP',['SAP S/4HANA - Global Finance','SAP ECC - EMEA','SAP ECC - Asia Pacific','SAP ECC - Latin America','JD Edwards - MedTech','Oracle EBS - North America']],
+  ['Payroll',['Workday Payroll','ADP Payroll - International']],
+  ['Procurement and expenses',['Coupa Procurement','SAP Ariba Sourcing','Concur Travel and Expense']],
+  ['Treasury and close',['Kyriba Treasury','BlackLine Reconciliations']],
+  ['Commercial and clinical',['Salesforce Revenue Cloud','Veeva Vault Clinical']],
+  ['Other',['Manual Spreadsheet Upload']]
+];
+const SYSTEM_TYPE={'Workday Payroll':'Payroll','ADP Payroll - International':'Payroll','Coupa Procurement':'Purchase','SAP Ariba Sourcing':'Purchase','Concur Travel and Expense':'Accrual','Kyriba Treasury':'Adjustment','BlackLine Reconciliations':'Reclassification','Salesforce Revenue Cloud':'Revenue','Veeva Vault Clinical':'Accrual'};
+const CCS=[
+  ['4200300','R&D - Clinical Operations'],
+  ['4100100','Manufacturing - Solid Dosage'],
+  ['4300200','Quality Assurance'],
+  ['4400100','Commercial - Oncology Marketing'],
+  ['4500100','Regulatory Affairs'],
+  ['4600400','Supply Chain - Distribution'],
+  ['4700100','Pharmacovigilance'],
+  ['4800200','Finance - Shared Services']
+];
+const PERSONAS={manager:{name:'Priya Raman',title:'Finance Manager',init:'PR'}};
+
+const HAS_SYSTEM=true;
+const K=a=>a.filter(k=>HAS_SYSTEM||k!=='system');
+const FIELD_DEFS_ALL=[['system','System'],['country','Country'],['cc','Company Code'],['type','Journal Type'],['date','Posting Date'],['currency','Currency'],['amount','Amount'],['costcenter','Cost Center'],
+  ['reversal','Reversal Date'],['targetAcct','Target Account'],['origDoc','Reverses Document'],['partner','Partner Company'],['releaseMonths','Release Over'],['frequency','Frequency'],['receiverCC','Receiving Cost Center'],['closeYear','Fiscal Year Closed'],['openBalance','Opening Balance'],['payPeriod','Pay Period'],['revenueStream','Revenue Stream'],['purchaseItem','Purchased'],
+  ['reason','Reason'],['template','Template'],['attach','Attachment'],['status','Status']];
+const FIELD_DEFS=FIELD_DEFS_ALL.filter(f=>HAS_SYSTEM||f[0]!=='system');
+const LABEL=Object.fromEntries(FIELD_DEFS_ALL);
+const EDITABLE=FIELD_DEFS.map(f=>f[0]).filter(k=>k!=='template'&&k!=='status');
+const VERIFIED=['system','cc','template','attach'];
+const STEP_DEFS=['Basic Information','Journal Details','Documents','Journal Template','Approval','SAP Posting'];
+
+const MOCK0=[
+  {id:'JE-2026-0913',system:'SAP ECC - EMEA',country:'Germany',cc:'3000',type:'Reclassification',currency:'EUR',amount:48200,date:'2026-09-16',costcenter:'4200300',targetAcct:'600350 - Clinical Trial Costs',reason:'Trial site fees were booked to general R&D instead of the clinical trial account.',attach:'site_fee_invoices.pdf',by:'Lukas Braun',age:'2 hours ago',role:'manager',state:'pending',note:'Target account 600350 needs a study ID in the line text. One is present (ONC-2231).',history:[]},
+  {id:'JE-2026-0907',system:'Oracle EBS - North America',country:'United States',cc:'2000',type:'Adjustment',currency:'USD',amount:12750,date:'2026-09-15',costcenter:'4600400',reason:'August freight expense was overstated after a duplicate carrier charge.',attach:'carrier_statement.pdf',by:'Maria Gomez',age:'Yesterday',role:'manager',state:'pending',note:'The carrier statement shows a matching duplicate charge of $12,750.',history:[]},
+  {id:'JE-2026-0899',system:'SAP ECC - EMEA',country:'Switzerland',cc:'5000',type:'Accrual',currency:'CHF',amount:230000,date:'2026-09-30',reversal:'2026-10-01',costcenter:'4300200',reason:'Q3 external quality audit fees; the vendor invoice is expected in October.',attach:'audit_engagement_letter.pdf',by:'Anna Keller',age:'Yesterday',role:'manager',state:'pending',note:'The engagement letter shows a quarterly fee of CHF 230,000, which matches this amount.',history:[]},
+  {id:'JE-2026-0902',system:'Workday Payroll',country:'India',cc:'1000',type:'Payroll',currency:'INR',amount:4865000,date:'2026-09-30',payPeriod:'Monthly, September 2026',costcenter:'4100100',reason:'September salaries for manufacturing staff from the external payroll provider.',attach:'payroll_register_sep.xlsx',by:'Rahul Menon',age:'Yesterday',role:'manager',state:'pending',note:'Headcount on the payroll register (212) matches HR records; gross pay is 2% higher than August after the annual increment.',history:[]},
+  {id:'JE-2026-0885',system:'SAP S/4HANA - Global Finance',country:'United Kingdom',cc:'4000',type:'Intercompany',currency:'GBP',amount:9400,date:'2026-09-14',partner:'2000 - J&J US - Innovative Medicine',costcenter:'4500100',reason:'Recharge of shared regulatory consulting costs to the US entity.',attach:'recharge_calculation.xlsx',by:'Tom Hughes',age:'2 days ago',role:'manager',state:'pending',note:'The partner entity has a matching open item for £9,400.',history:[]}
+];
+
+let S={}, MOCK=[], runId=0, view='creator', persona='manager', selId=null;
+
+/* ---------- helpers ---------- */
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function sleep(ms){const id=runId;return new Promise((res,rej)=>setTimeout(()=>id===runId?res():rej('reset'),reduced?Math.min(ms,250):ms))}
+const onErr=e=>{if(e!=='reset')console.error(e)};
+window.addEventListener('unhandledrejection',e=>{if(e.reason==='reset')e.preventDefault()});
+function money(v,cur){cur=cur||S.currency||'INR';const c=CUR[cur]||CUR.INR;return c.s+Number(v).toLocaleString(c.l,{maximumFractionDigits:2})}
+function fmtDate(iso){if(!iso)return '—';const [y,m,d]=iso.split('-');return d+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(m)-1]+' '+y}
+function ccName(c){const f=CCS.find(x=>x[0]===c);return f?f[1]:'Cost center'}
+function ccLabel(c){return c+' - '+ccName(c)}
+function findCC(q){q=q.trim().toLowerCase();if(!q)return null;const code=q.split(' ')[0];const exact=CCS.find(c=>c[0]===code);if(exact)return exact[0];const m=CCS.find(c=>c[1].toLowerCase().includes(q)||c[0].startsWith(q));return m?m[0]:null}
+function article(w){return /^[AEIOU]/i.test(w)?'an':'a'}
+function extraKey(j){j=j||S;return j.type?EXTRA_BY_TYPE[j.type]:null}
+function period(j){return j.date?j.date.slice(5,7)+'/'+j.date.slice(0,4):'-'}
+function shortTemplate(j){j=j||S;return (HAS_SYSTEM?j.system+' - ':'')+j.country+' - '+j.type}
+function clock(){S.clock=(S.clock||0)+7;const d=new Date(2026,8,17,10,20+S.clock);return '17 Sep, '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),3600)}
+function scroll(){
+  if(view!=='creator')return;
+  requestAnimationFrame(()=>{
+    if(matchMedia('(max-width:1040px)').matches){const l=chat.lastElementChild;if(l)l.scrollIntoView({behavior:reduced?'auto':'smooth',block:'end'})}
+    else chat.scrollTo({top:chat.scrollHeight,behavior:reduced?'auto':'smooth'});
+  });
+}
+function row(who){
+  const r=document.createElement('div');r.className='row '+who;
+  r.innerHTML=who==='ai'?'<div class="av ai" aria-hidden="true">'+ICON.spark+'</div>':'<div class="av me" aria-label="You">AK</div>';
+  const st=document.createElement('div');st.className='stack';r.appendChild(st);chat.appendChild(r);scroll();return st;
+}
+async function ai(html,o){
+  o=o||{};const st=row('ai');
+  const t=document.createElement('div');t.className='typing';t.innerHTML='<span></span><span></span><span></span>';st.appendChild(t);scroll();
+  await sleep(o.wait||700);t.remove();
+  const b=document.createElement('div');b.className='bubble'+(o.cls?' '+o.cls:'');b.innerHTML=html;st.appendChild(b);scroll();st.bubble=b;return st;
+}
+function aiNow(html,cls){const st=row('ai');const b=document.createElement('div');b.className='bubble'+(cls?' '+cls:'');b.innerHTML=html;st.appendChild(b);st.bubble=b;scroll();return st}
+function aiStatus(text){return aiNow('<div class="status-line"><div class="spin"></div><span class="thinking">'+esc(text)+'</span></div>')}
+function user(content,o){
+  o=o||{};const st=row('user');const b=document.createElement('div');b.className='bubble';b.innerHTML=o.raw?content:esc(content);st.appendChild(b);
+  if(o.key){const e=document.createElement('button');e.type='button';e.className='edit-link';e.innerHTML=ICON.pencil+' Change';e.onclick=()=>editField(o.key);st.appendChild(e)}
+  scroll();
+}
+function attach(st,html){const w=document.createElement('div');w.className='widget';w.innerHTML=html;st.appendChild(w);scroll();return w}
+function ask(st,html,bind,keep){
+  return new Promise(res=>{
+    const w=attach(st,html);
+    bind(w,v=>{w.classList.add('locked');if(keep)w.classList.add('keep');res(v)});
+    const f=w.querySelector('input:not([type=file]),select,textarea');
+    if(f&&!matchMedia('(max-width:640px)').matches)setTimeout(()=>{if(view==='creator')f.focus({preventScroll:true})},350);
+  });
+}
+const PDF_BTN='<button type="button" class="btn ghost sm" data-pdf><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 20h16"/></svg> Download PDF</button>';
+function pdfText(t){return String(t==null?'':t).replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"').replace(/[\u2013\u2014]/g,'-').replace(/[^\x20-\x7E]/g,'')}
+function amt(v,cur){return cur+' '+Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+async function saveFile(name,blob){
+  if(window.claude&&typeof window.claude.use==='function'){
+    const dl=await window.claude.use('downloads');
+    if(!dl){toast('Downloads are not available in this view.');return}
+    try{await dl.save({filename:name,data:blob});toast('PDF saved.')}
+    catch(e){const c=e&&e.code;if(c==='declined')return;toast(c==='rate_limited'?'A save prompt is already open.':'The PDF could not be saved here.')}
+    return;
+  }
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+}
+async function downloadPDF(j,status){
+  if(!window.jspdf){toast('The PDF tool is still loading. Try again in a moment.');return}
+  const doc=new window.jspdf.jsPDF({unit:'pt',format:'a4'});
+  const W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),M=40;
+  const T=(t,x,y,o)=>doc.text(pdfText(t),x,y,o);
+  const ensure=h=>{if(y+h>H-60){doc.addPage();y=50}};
+  doc.setFillColor(155,14,0);doc.rect(0,0,W,78,'F');
+  doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(18);T('Journal Posting Template',M,36);
+  doc.setFont('helvetica','normal');doc.setFontSize(10.5);T(shortTemplate(j)+' Journal Template  |  Doc type SA  |  Period '+period(j),M,56);
+  T(j.id||'Draft journal',W-M,36,{align:'right'});T('Status: '+status,W-M,56,{align:'right'});
+  let y=110;
+  const head=t=>{ensure(40);doc.setTextColor(155,14,0);doc.setFont('helvetica','bold');doc.setFontSize(12);T(t,M,y);doc.setDrawColor(230,200,200);doc.line(M,y+6,W-M,y+6);y+=26};
+  head('Journal header');
+  const ek=extraKey(j);
+  const keys=K(['system','country','cc','type','date','currency','amount','costcenter']).concat(ek&&j[ek]!=null?[ek]:[]);
+  keys.forEach((k,i)=>{
+    const x=i%2?W/2+10:M;if(i%2===0&&i)y+=34;
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(120,120,120);T(LABEL[k],x,y);
+    doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(30,30,30);
+    T(k==='amount'?amt(j.amount,j.currency):dispOf(k,j),x,y+14);
+  });
+  y+=46;
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(120,120,120);T('Reason',M,y);
+  doc.setFontSize(10.5);doc.setTextColor(30,30,30);
+  const rl=doc.splitTextToSize(pdfText(j.reason),W-2*M);doc.text(rl,M,y+14);y+=14+rl.length*13+22;
+  head('Journal lines');
+  const cols=[[M,'GL (PK)','left',70],[M+75,'Description','left',170],[W-M-205,'Debit','right'],[W-M-112,'Credit','right'],[W-M-96,'Cost Center','left']];
+  doc.setFillColor(253,231,231);doc.rect(M,y-13,W-2*M,22,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor(90,30,30);
+  cols.forEach(c=>T(c[1],c[0]+(c[2]==='right'?0:6),y+2,{align:c[2]}));
+  y+=24;doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);
+  const L=linesFor(j);let dr=0,cr=0;
+  L.forEach(l=>{
+    ensure(24);dr+=l.dr||0;cr+=l.cr||0;
+    T(l.gl+' ('+(l.dr!=null?'40':'50')+')',M+6,y);T(doc.splitTextToSize(pdfText(l.desc),160)[0],M+81,y);
+    T(l.dr!=null?amt(l.dr,j.currency):'-',W-M-205,y,{align:'right'});
+    T(l.cr!=null?amt(l.cr,j.currency):'-',W-M-112,y,{align:'right'});
+    T(l.cc||'-',W-M-90,y);
+    doc.setDrawColor(235,235,235);doc.line(M,y+8,W-M,y+8);y+=22;
+  });
+  doc.setFont('helvetica','bold');T('Total',M+81,y);T(amt(dr,j.currency),W-M-205,y,{align:'right'});T(amt(cr,j.currency),W-M-112,y,{align:'right'});
+  doc.setTextColor(15,123,63);T(dr===cr?'Balanced':'Not balanced',W-M,y+20,{align:'right'});y+=48;
+  head('Supporting documents');
+  doc.setFont('helvetica','normal');doc.setFontSize(10.5);doc.setTextColor(30,30,30);
+  T(j.attach?j.attach+'  (stored in Document Management Service)':'None attached yet',M,y);y+=30;
+  const hist=(j.history||[]);
+  if(hist.length){
+    head('Approval history');
+    hist.forEach(h=>{ensure(20);T((h.action==='approve'?'Approved':h.action==='changes'?'Sent back':'Rejected')+' by '+h.name+' ('+PERSONAS[h.role].title+'), '+h.time+(h.comment?' - "'+h.comment+'"':''),M,y);y+=18});
+    if(j.postTime&&j.stage==='posted'){T('Posted to SAP S/4HANA as document 1900045678, '+j.postTime,M,y);y+=18}
+  }
+  const pages=doc.getNumberOfPages();
+  for(let i=1;i<=pages;i++){doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(140,140,140);
+    T('Generated 17 Sep 2026 by AI-Guided Journal Posting. Demo data. Review financial information before posting.',M,H-28);T('Page '+i+' of '+pages,W-M,H-28,{align:'right'})}
+  const name=shortTemplate(j).replace(/[^A-Za-z0-9]+/g,'_').replace(/_+$/,'')+'_Journal_Template.pdf';
+  await saveFile(name,doc.output('blob'));
+}
+const doneMark=()=>'<span class="done-mark">'+ICON.check+'</span>';
+const ctx=t=>'<span class="ctx">'+ICON.spark+' Asked because this is '+article(t)+' '+t+'</span><br>';
+function chipsHTML(opts,sug){return '<div class="chips">'+opts.map(o=>'<button type="button" class="chip" data-v="'+esc(o)+'">'+esc(o)+(o===sug?' <span class="sug">Suggested</span>':'')+'</button>').join('')+'</div>'}
+function bindChips(w,done){w.querySelectorAll('.chips .chip').forEach(c=>c.onclick=()=>{c.classList.add('sel');done(c.dataset.v)})}
+function inputHTML(type,ph,btn,val,hint,extra){
+  return '<div class="inline-form"><input class="field" type="'+type+'" placeholder="'+esc(ph||'')+'" value="'+esc(val||'')+'" '+(extra||'')+'><button type="button" class="btn primary">'+esc(btn)+'</button></div>'+(hint?'<div class="hint">'+hint+'</div>':'');
+}
+function bindInput(check){
+  return (w,done)=>{
+    const i=w.querySelector('input'),b=w.querySelector('button');
+    const ok=()=>check?check(i.value):i.value.trim()!=='';
+    const upd=()=>{b.disabled=!ok()};upd();i.addEventListener('input',upd);
+    const go=()=>{if(ok())done(i.value.trim())};
+    b.onclick=go;i.addEventListener('keydown',e=>{if(e.key==='Enter')go()});
+  };
+}
+function dateChoice(st,opts,map,sug,def){
+  return ask(st,chipsHTML(opts,sug)+'<div class="inline-form" data-d style="margin-top:8px;display:none"><input class="field" type="date" value="'+def+'" aria-label="Date"><button type="button" class="btn ghost">Use this date</button></div>',
+    (w,done)=>{
+      w.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+        w.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');
+        if(!map[c.dataset.v]){w.querySelector('[data-d]').style.display='flex';return}
+        done(map[c.dataset.v]);
+      });
+      w.querySelector('[data-d] .btn').onclick=()=>{const i=w.querySelector('[data-d] input');if(i.value)done(i.value)};
+    },true);
+}
+function set(k,v){S[k]=v;if(S.editing===k)S.editing=null;sync()}
+
+/* ---------- display ---------- */
+function dispOf(k,j){
+  if(k==='template')return j.templateOk?shortTemplate(j):null;
+  const v=j[k];if(v==null||v==='')return null;
+  if(k==='date'||k==='reversal')return fmtDate(v);
+  if(k==='amount')return money(v,j.currency);
+  if(k==='costcenter'||k==='receiverCC')return ccLabel(v);
+  if(k==='cc')return v+' - '+CC_NAMES[v];
+  if(k==='releaseMonths')return v+' months';
+  return String(v);
+}
+function statusOf(){
+  switch(S.stage){
+    case 'manager':return ['Pending Manager Approval','amber pulse'];
+    case 'approved':return ['Approved, Posting...','blue'];
+    case 'posting':return ['Posting...','blue'];
+    case 'posted':return ['Posted','green'];
+    case 'changes':return ['Changes Requested','amber'];
+    case 'rejected':return ['Rejected','red'];
+  }
+  return S.templateOk?['Draft Ready','blue']:['In Progress','amber'];
+}
+function renderFields(){
+  $('#fields').innerHTML=FIELD_DEFS.map(([k,l])=>'<div class="f'+(EXTRA_KEYS.includes(k)?' hidden':'')+'" id="f-'+k+'"><div class="fl">'+l+'</div><div class="fv empty">—</div>'+
+    (EDITABLE.includes(k)?'<button type="button" class="fedit" data-k="'+k+'" aria-label="Change '+l+'" title="Change '+l+'">'+ICON.pencil+'</button>':'<span></span>')+'</div>').join('');
+  $('#fields').querySelectorAll('.fedit').forEach(b=>b.onclick=()=>editField(b.dataset.k));
+}
+function sync(){
+  document.body.classList.toggle('no-edit',!!S.submitted);
+  const ek=extraKey();
+  FIELD_DEFS.forEach(([k])=>{
+    const f=$('#f-'+k),fv=f.querySelector('.fv');
+    if(EXTRA_KEYS.includes(k))f.classList.toggle('hidden',k!==ek);
+    let key,html,cls='';
+    if(k==='status'){const [t,tone]=statusOf();key=t;html='<span class="pill '+tone+'">'+t+'</span>'}
+    else if(S.editing===k){key='__e';cls='editing';html='Updating...'}
+    else{
+      let v=dispOf(k,S);
+      if(v!=null&&k==='reason'&&v.length>32)v=v.slice(0,32)+'...';
+      key=String(v);
+      if(v==null){cls='empty';html='—'}
+      else html='<span>'+esc(v)+'</span>'+(VERIFIED.includes(k)?'<svg class="vt" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-label="Verified"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>':'');
+    }
+    f.classList.toggle('filled',!['empty','editing'].includes(cls)&&k!=='status');
+    if(f.dataset.v===key)return;
+    f.dataset.v=key;fv.className='fv '+cls;fv.innerHTML=html;
+    if(!cls){f.classList.remove('flash');void f.offsetWidth;f.classList.add('flash')}
+  });
+  refreshSteps();
+  $('#apDot').hidden=S.stage!=='manager';
+}
+function refreshSteps(){
+  const st=S.stage;
+  const ek=extraKey();
+  const s1=!!((S.system||!HAS_SYSTEM)&&S.country&&S.cc);
+  const s2=s1&&['type','date','currency','amount','costcenter','reason'].every(k=>S[k]!=null)&&(!ek||S[ek]!=null);
+  const s3=s2&&!!S.attach, s4=s3&&!!S.templateOk;
+  const states=[
+    s1?'done':'active',
+    s2?'done':s1?'active':'',
+    s3?'done':s2?'active':'',
+    s4?'done':s3?'active':'',
+    ['approved','posting','posted'].includes(st)?'done':st==='manager'?'pending':st==='rejected'?'bad':st==='changes'?'active':s4?'active':'',
+    st==='posted'?'done':(st==='approved'||st==='posting')?'active':''
+  ];
+  const txt={done:'Done',pending:'Pending',active:'In progress',bad:'Rejected','':''};
+  $('#steps').innerHTML=STEP_DEFS.map((l,i)=>'<li class="'+states[i]+'"><span class="sn">'+(states[i]==='done'?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>':i+1)+'</span>'+l+'<span class="st">'+txt[states[i]]+'</span></li>').join('');
+  const done=states.filter(s=>s==='done').length,pct=Math.round(done/6*100);
+  $('#pct').textContent=pct+'%';$('#barFill').style.width=pct+'%';
+  const cur=states.findIndex(s=>s==='active'||s==='pending'||s==='bad');
+  $('#stageLabel').textContent=st==='rejected'?'Journal rejected':cur<0?'Completed':'Step '+(cur+1)+' of 6: '+STEP_DEFS[cur];
+}
+
+/* ---------- journal lines ---------- */
+function linesFor(j){
+  const a=j.amount,cc=j.costcenter,L=(gl,desc,dr,cr,c)=>({gl,desc,dr,cr,cc:c});
+  switch(j.type){
+    case 'Reclassification':{const p=(j.targetAcct||'600200 - Lab Supplies').split(' - ');return [L(p[0],p.slice(1).join(' - '),a,null,cc),L('600100','Operating Expense',null,a,cc)]}
+    case 'Adjustment':return [L('600100','Operating Expense',a,null,cc),L('199000','Adjustment Clearing',null,a,null)];
+    case 'Reversal':return [L('210500','Accrued Liability',a,null,null),L('600100','Operating Expense',null,a,cc)];
+    case 'Intercompany':return [L('600100','Operating Expense',a,null,cc),L('220100','Intercompany Payable ('+String(j.partner||'').split(' ')[0]+')',null,a,null)];
+    case 'Prepayment':return [L('140200','Prepaid Expenses',a,null,null),L('600100','Operating Expense',null,a,cc)];
+    case 'Allocation':return [L('600900','Allocated Cost, received',a,null,j.receiverCC),L('600900','Allocated Cost, sent',null,a,cc)];
+    case 'Closing':return [L('400100','Product Revenue (year-end close)',a,null,null),L('330000','Retained Earnings',null,a,null)];
+    case 'Opening':{const m=OPEN_MAP[j.openBalance]||OPEN_MAP['Bank balance'];return [L(m[0],m[1]+' (opening)',a,null,null),L('339000','Opening Balance Clearing',null,a,null)]}
+    case 'Payroll':return [L('610000','Salaries and Wages',a,null,cc),L('220500','Payroll Payable',null,a,null)];
+    case 'Revenue':{const m=REV_MAP[j.revenueStream]||REV_MAP['Product sales'];return [L('120000','Accounts Receivable',a,null,null),L(m[0],m[1],null,a,cc)]}
+    case 'Purchase':{const m=PUR_MAP[j.purchaseItem]||PUR_MAP['Lab consumables'];return [L(m[0],m[1],a,null,m[0].startsWith('13')?null:cc),L('210100','Accounts Payable',null,a,null)]}
+    default:return [L('600100','Operating Expense',a,null,cc),L('210500','Accrued Liability',null,a,null)];
+  }
+}
+function linesTable(j){
+  return '<div class="tbl-wrap"><table><thead><tr><th>PK</th><th>GL Account</th><th>Description</th><th class="num">Debit</th><th class="num">Credit</th><th>Cost Center</th></tr></thead><tbody>'+
+    linesFor(j).map(l=>'<tr><td>'+(l.dr!=null?'40':'50')+'</td><td>'+esc(l.gl)+'</td><td>'+esc(l.desc)+'</td><td class="num">'+(l.dr!=null?money(l.dr,j.currency):'—')+'</td><td class="num">'+(l.cr!=null?money(l.cr,j.currency):'—')+'</td><td>'+esc(l.cc||'—')+'</td></tr>').join('')+
+    '</tbody></table></div>';
+}
+
+/* ---------- conversation stages ---------- */
+const STAGES={
+  async system(){
+    if(!S.welcomed){S.welcomed=true;await ai("Hi! 👋 I'll help you create your journal posting. I'll ask you a few questions and prepare the correct journal for you.",{wait:900})}
+    const pv=S.prev.system;
+    const st=await ai(pv?"Which system should this journal use?":"Let's begin. Which system is this journal for?");
+    const v=await ask(st,'<div class="inline-form"><select class="field wide" aria-label="Source system"><option value="">Select a system</option>'+SYSTEM_GROUPS.map(g=>'<optgroup label="'+esc(g[0])+'">'+g[1].map(o=>'<option'+(o===pv?' selected':'')+' value="'+esc(o)+'">'+esc(o)+'</option>').join('')+'</optgroup>').join('')+'</select><button type="button" class="btn primary">Continue</button></div><div class="hint">16 source systems are connected.</div>',
+      (w,done)=>{const s=w.querySelector('select'),b=w.querySelector('button');b.disabled=!s.value;s.onchange=()=>b.disabled=!s.value;b.onclick=()=>s.value&&done(s.value)});
+    user(v,{key:'system'});set('system',v);
+    await ai("Great, you've selected <b>"+esc(v)+"</b>. I'll use the journal configuration associated with this system.");
+  },
+  async country(){
+    if(!S.welcomed){S.welcomed=true;await ai("Hi! 👋 I'll help you create your journal posting. I'll ask you a few questions and prepare the correct journal for you.",{wait:900})}
+    const st=await ai(HAS_SYSTEM||S.prev.country?"Which country is this journal for?":"Let's begin. Which country is this journal for?");
+    let v=await ask(st,chipsHTML(['United States','Germany','India','United Kingdom','Switzerland','Other']),bindChips,true);
+    if(v==='Other'){
+      user('Other');
+      const st2=await ai("No problem. Which country should I use?");
+      v=await ask(st2,inputHTML('text','e.g. Japan','Continue'),bindInput());
+    }
+    user(v,{key:'country'});set('country',v);
+  },
+  async cc(){
+    let retry=false;
+    while(true){
+      const st=await ai(retry?"Please choose another Company Code.":"Which Company Code should this journal be posted to?");
+      const mine=COMPANY_CODES.filter(c=>c[2]===S.country),rest=COMPANY_CODES.filter(c=>c[2]!==S.country);
+      const opt=c=>'<option value="'+c[0]+'"'+(c[0]===S.prev.cc&&!retry?' selected':'')+'>'+c[0]+' - '+esc(c[1])+'</option>';
+      const def=(!retry&&S.prev.cc)||(mine[0]||[])[0]||'';
+      const v=await ask(st,'<div class="inline-form"><select class="field wide" aria-label="Company Code"><option value="">Select a company code</option>'+
+        (mine.length?'<optgroup label="'+esc(S.country)+'">'+mine.map(opt).join('')+'</optgroup>':'')+
+        '<optgroup label="'+(mine.length?'Other company codes':'All company codes')+'">'+rest.map(opt).join('')+'</optgroup></select><button type="button" class="btn primary">Validate</button></div>'+
+        (mine.length?'<div class="hint">Showing '+esc(S.country)+' company codes first.</div>':''),
+        (w,done)=>{const sl=w.querySelector('select'),b=w.querySelector('button');if(def&&!sl.value)sl.value=def;b.disabled=!sl.value;sl.onchange=()=>b.disabled=!sl.value;b.onclick=()=>sl.value&&done(sl.value)});
+      user(v+' - '+CC_NAMES[v],{key:'cc'});
+      const s=aiStatus('Checking Company Code with SAP S/4HANA...');
+      await sleep(1100);
+      if(VALID_CC.includes(v)){
+        s.bubble.className='bubble ok';
+        s.bubble.innerHTML='<div class="status-line">'+doneMark()+'<span>Company Code <b>'+esc(v)+'</b> is valid ('+CC_NAMES[v]+').</span></div>';
+        set('cc',v);return;
+      }
+      s.bubble.className='bubble error';
+      s.bubble.textContent="Company Code "+v+" is not open for posting in S/4HANA (the entity is inactive). Please choose another company code.";
+      retry=true;await sleep(500);
+    }
+  },
+  async type(){
+    const t=await askType();
+    set('type',t);
+    if(!S.date)await ai("Great choice. I'll ask a few details for your <b>"+esc(t)+"</b> journal.");
+  },
+  async date(){
+    const st=await ai('What posting date should this journal use?<details class="why"><summary>Why do you ask this?</summary>The posting date decides which accounting period the entry is booked in, and it is not always the day you post. During month-end close, for example, you might enter an accrual on 2 October that belongs to September, so it needs a 30 September posting date.</details>');
+    const o=['Today (17 Sep 2026)','End of this period (30 Sep 2026)','End of last period (31 Aug 2026)','Pick a date'];
+    const map={[o[0]]:'2026-09-17',[o[1]]:'2026-09-30',[o[2]]:'2026-08-31'};
+    const sug=['Accrual','Prepayment','Recurring','Allocation','Payroll','Closing'].includes(S.type)?o[1]:o[0];
+    const v=await dateChoice(st,o,map,sug,S.prev.date||'2026-09-17');
+    user(fmtDate(v),{key:'date'});set('date',v);
+  },
+  async currency(){
+    const sug=COUNTRY_CUR[S.country];
+    const st=await ai("What currency should be used?"+(sug?'<div class="hint">'+sug+' is the local currency for '+esc(S.country)+'.</div>':''));
+    const v=await ask(st,chipsHTML(['USD','EUR','INR','GBP','CHF'],sug),bindChips,true);
+    user(v,{key:'currency'});set('currency',v);
+  },
+  async amount(){
+    const st=await ai("What is the journal amount?");
+    const v=await ask(st,inputHTML('number','e.g. 100000','Confirm amount',S.prev.amount||'100000','<span data-prev></span>','min="0" step="0.01" inputmode="decimal" aria-label="Journal amount"'),
+      (w,done)=>{bindInput(x=>Number(x)>0)(w,done);const i=w.querySelector('input'),p=w.querySelector('[data-prev]');
+        const u=()=>p.textContent=Number(i.value)>0?'Amount: '+money(i.value):'Enter an amount greater than zero.';u();i.addEventListener('input',u)});
+    user(money(Number(v)),{key:'amount'});set('amount',Number(v));
+  },
+  async costcenter(){
+    const pv=S.prev.costcenter;
+    const st=await ai('Which cost center should this journal be charged to?<details class="why"><summary>What is a cost center?</summary>A cost center is the department or team that owns the cost, such as Clinical Operations or Quality Assurance. It tells budget owners whose spend this is. The list comes from SAP master data for Company Code '+esc(S.cc)+'.</details>');
+    const v=await ask(st,'<p class="upl-label">You used these recently</p>'+chipsHTML(CCS.slice(0,3).map(c=>c[0]+' - '+c[1]))+
+      '<div class="inline-form" style="margin-top:10px"><input class="field wide" list="ccList" placeholder="Search by name or number" value="'+(pv?esc(ccLabel(pv)):'')+'" aria-label="Search cost centers"><button type="button" class="btn ghost">Use this</button></div><div class="hint err" data-err></div>',
+      (w,done)=>{
+        bindChips(w,x=>done(x.split(' ')[0]));
+        const i=w.querySelector('input'),b=w.querySelector('.btn'),e=w.querySelector('[data-err]');
+        const go=()=>{const c=findCC(i.value);if(c)done(c);else e.textContent='No cost center matches that. Try a number like 4300200 or a name like Quality.'};
+        b.onclick=go;i.onkeydown=ev=>{if(ev.key==='Enter')go()};
+      },true);
+    user(ccLabel(v),{key:'costcenter'});set('costcenter',v);
+  },
+  async reason(){
+    const st=await ai("Please provide a brief reason for this journal.");
+    const ex={Accrual:'September consulting services received; supplier invoice pending.',Reclassification:'Lab supplies were posted to the operations cost center in error.',Adjustment:'Correct overstated freight expense from August close.',Reversal:'Reverse the August accrual now that the actual invoice is posted.',Intercompany:'Recharge shared IT costs to the German entity.',Prepayment:'Annual software licence paid upfront in September.',Recurring:'Monthly facility service charge accrual.',Allocation:'Share of September shared-lab costs.',Closing:'Year-end close of FY 2025 income statement balances.',Opening:'Opening bank balance for the new Pune entity go-live.',Payroll:'September salaries from the external payroll provider.',Revenue:'September product shipments to hospital distributors.',Purchase:'Lab consumables bought for the stability testing program.'}[S.type];
+    const v=await ask(st,'<textarea class="field" aria-label="Reason" placeholder="Describe why this journal is needed">'+esc(S.prev.reason||'')+'</textarea><div class="btn-row"><button type="button" class="btn primary">Continue</button><button type="button" class="chip" data-s>'+ICON.spark+' Suggest: '+esc(ex)+'</button></div>',
+      (w,done)=>{const ta=w.querySelector('textarea'),b=w.querySelector('.btn.primary');const u=()=>b.disabled=!ta.value.trim();u();ta.oninput=u;
+        w.querySelector('[data-s]').onclick=()=>{ta.value=ex;u()};b.onclick=()=>ta.value.trim()&&done(ta.value.trim())});
+    user(v,{key:'reason'});set('reason',v);
+  },
+  async reversal(){
+    const st=await ai(ctx('Accrual')+'When should this accrual be reversed?');
+    const o=['First day of next period (01 Oct 2026)','End of next period (31 Oct 2026)','Pick a date'];
+    const v=await dateChoice(st,o,{[o[0]]:'2026-10-01',[o[1]]:'2026-10-31'},o[0],S.prev.reversal||'2026-10-01');
+    user('Reverse on '+fmtDate(v),{key:'reversal'});set('reversal',v);
+  },
+  async targetAcct(){
+    const st=await ai(ctx('Reclassification')+'Which account should the amount be moved to?');
+    const v=await ask(st,chipsHTML(['600200 - Lab Supplies','600350 - Clinical Trial Costs','610100 - Marketing Expense']),bindChips,true);
+    user(v,{key:'targetAcct'});set('targetAcct',v);
+  },
+  async origDoc(){
+    const st=await ai(ctx('Reversal')+'Which SAP document should be reversed?');
+    const v=await ask(st,inputHTML('text','e.g. 1900041122','Find document',S.prev.origDoc||'1900041122','I will look up the original entry in S/4HANA.'),bindInput());
+    user(v,{key:'origDoc'});
+    const s=aiStatus('Looking up document '+v+'...');await sleep(900);
+    s.bubble.className='bubble ok';s.bubble.innerHTML='<div class="status-line">'+doneMark()+'<span>Found document <b>'+esc(v)+'</b>, posted on 31 Aug 2026.</span></div>';
+    set('origDoc',v);
+  },
+  async partner(){
+    const st=await ai(ctx('Intercompany')+'Which company code is on the other side of this transaction?');
+    const v=await ask(st,chipsHTML(VALID_CC.filter(c=>c!==S.cc).map(c=>c+' - '+CC_NAMES[c])),bindChips,true);
+    user(v,{key:'partner'});set('partner',v);
+  },
+  async releaseMonths(){
+    const st=await ai(ctx('Prepayment')+'Over how many months should this cost be released?');
+    const v=await ask(st,chipsHTML(['3 months','6 months','12 months'],'12 months'),bindChips,true);
+    user(v,{key:'releaseMonths'});set('releaseMonths',parseInt(v,10));
+  },
+  async frequency(){
+    const st=await ai(ctx('Recurring')+'How often should this journal repeat?');
+    const v=await ask(st,chipsHTML(['Monthly for 12 months','Quarterly for 4 quarters']),bindChips,true);
+    user(v,{key:'frequency'});set('frequency',v);
+  },
+  async receiverCC(){
+    const st=await ai(ctx('Allocation')+'Which cost center should receive this cost?');
+    const v=await ask(st,chipsHTML(CCS.filter(c=>c[0]!==S.costcenter).slice(0,3).map(c=>c[0]+' - '+c[1])),bindChips,true);
+    const code=v.split(' ')[0];user(v,{key:'receiverCC'});set('receiverCC',code);
+  },
+  async closeYear(){
+    const st=await ai(ctx('Closing')+'Which fiscal year are you closing?');
+    const v=await ask(st,chipsHTML(['FY 2025','FY 2026 (current)'],'FY 2025'),bindChips,true);
+    user(v,{key:'closeYear'});set('closeYear',v);
+  },
+  async openBalance(){
+    const st=await ai(ctx('Opening')+'Which balance are you bringing in?');
+    const v=await ask(st,chipsHTML(Object.keys(OPEN_MAP)),bindChips,true);
+    user(v,{key:'openBalance'});set('openBalance',v);
+  },
+  async payPeriod(){
+    const st=await ai(ctx('Payroll')+'Which pay period is this payroll for?');
+    const v=await ask(st,chipsHTML(['Monthly, September 2026','Fortnight ending 13 Sep 2026','Off-cycle run (bonus or correction)'],'Monthly, September 2026'),bindChips,true);
+    user(v,{key:'payPeriod'});set('payPeriod',v);
+  },
+  async revenueStream(){
+    const st=await ai(ctx('Revenue')+'Which revenue stream is this?');
+    const v=await ask(st,chipsHTML(Object.keys(REV_MAP)),bindChips,true);
+    user(v,{key:'revenueStream'});set('revenueStream',v);
+  },
+  async purchaseItem(){
+    const st=await ai(ctx('Purchase')+'What was purchased?');
+    const v=await ask(st,chipsHTML(Object.keys(PUR_MAP)),bindChips,true);
+    user(v,{key:'purchaseItem'});set('purchaseItem',v);
+  },
+  async template(){ await generate() },
+  async attach(){ await documents() },
+  async review(){ await review() }
+};
+const ORDER=K(['system','country','cc','type','date','currency','amount','costcenter','reason','extra','attach','template','review']);
+function nextKey(){
+  for(const k of ORDER){
+    if(k==='extra'){const e=extraKey();if(e&&S[e]==null)return e;continue}
+    if(k==='template'){if(!S.templateOk)return k;continue}
+    if(k==='review'){if(!S.submitted)return k;continue}
+    if(S[k]==null)return k;
+  }
+  return null;
+}
+async function advance(){
+  const id=runId;
+  while(id===runId){
+    const k=nextKey();if(!k)return;
+    await STAGES[k]();
+    if(k==='review')return;
+  }
+}
+
+function editField(k,quiet){
+  if(S.submitted){
+    toast(S.stage==='posted'?'This journal is already posted. Create a Reversal journal to undo it.':S.stage==='rejected'?'This journal was rejected and is closed. Start a new journal instead.':'This journal is with the approvers. They can send it back if changes are needed.');
+    return;
+  }
+  if(!EDITABLE.includes(k))return;
+  runId++;
+  chat.querySelectorAll('.widget:not(.locked)').forEach(w=>w.classList.add('locked'));
+  chat.querySelectorAll('.row').forEach(r=>{if(r.querySelector('.typing,.spin'))r.remove()});
+  S.prev[k]=S[k];S[k]=null;S.editing=k;
+  if(k==='type')EXTRA_KEYS.forEach(e=>{if(S[e]!=null){S.prev[e]=S[e];S[e]=null}});
+  if(k!=='reason'&&k!=='attach')S.templateOk=false;
+  sync();
+  (async()=>{
+    if(!quiet)await ai("Sure, let's update the <b>"+esc(LABEL[k].toLowerCase())+"</b>. Your other answers stay as they are.",{wait:450});
+    await advance();
+  })().catch(onErr);
+}
+
+function typeCards(){
+  const sg=SYSTEM_TYPE[S.system];
+  const card=([t,d])=>'<button type="button" class="type" data-v="'+t+'"><div class="ic">'+TYPE_ICONS[t]+'</div><div><b>'+t+(t===sg?' <span class="sug-tag">Common for this system</span>':'')+'</b><span>'+d+'</span></div></button>';
+  const inMore=sg&&!TYPES.some(x=>x[0]===sg);
+  return '<div class="types">'+TYPES.map(card).join('')+'</div>'+
+    '<div class="more-wrap" data-morebox'+(inMore?'':' hidden')+'>'+MORE_GROUPS.map(g=>'<p class="upl-label" style="margin:12px 0 8px;font-weight:600">'+g[0]+'</p><div class="types">'+g[1].map(card).join('')+'</div>').join('')+'<div class="hint">Your finance team can turn journal types on or off for each system.</div></div>'+
+    '<div class="unsure"><button type="button" class="btn link" data-more>'+(inMore?'Show fewer journal types':'Show more journal types')+'</button></div>';
+}
+function recommend(text){
+  const t=text.toLowerCase();
+  if(/revers|cancel|undo|duplicate|posted twice/.test(t))return ['Reversal','you want to cancel the effect of a journal that was already posted'];
+  if(/hasn.?t arrived|not (yet )?received|invoice (is )?pending|awaiting (the )?invoice/.test(t))return ['Accrual','the service or goods were received in this period, but the invoice has not been recorded yet'];
+  if(/payroll|salar|wage|bonus|pay run|payslip/.test(t))return ['Payroll','it records pay for employees from a payroll run'];
+  if(/year.?end clos|closing entr|close the (books|year)|retained earnings/.test(t))return ['Closing','it closes income and expense balances at year end'];
+  if(/opening balance|carry.?forward|go.?live|new entity|starting balance/.test(t))return ['Opening','it brings in starting balances'];
+  if(/revenue|sales to|sold|royalt|licens(e|ing) income|customer invoice/.test(t))return ['Revenue','it records income earned from customers'];
+  if(/purchas|bought|procure|supplier invoice (received|arrived)|goods receipt/.test(t))return ['Purchase','it records goods or services bought from a supplier'];
+  if(/intercompany|recharge|group company|other entity|sister/.test(t))return ['Intercompany','the cost is shared with another company in the group'];
+  if(/prepaid|paid in advance|upfront|annual licen|subscription/.test(t))return ['Prepayment','the cost was paid in advance and covers future months'];
+  if(/every month|each month|monthly|recurring|every quarter/.test(t))return ['Recurring','the same entry needs to be posted regularly'];
+  if(/share|allocat|split between|split across/.test(t))return ['Allocation','a cost needs to be shared between cost centers'];
+  if(/wrong (account|cost)|move|reclass|incorrect (account|cost)/.test(t))return ['Reclassification','an amount was recorded in the wrong place and needs to be moved'];
+  if(/correct|adjust|overstat|understat|error in amount/.test(t))return ['Adjustment','a previously recorded amount needs to be corrected'];
+  return ['Accrual','the service or goods were received in this period, but the invoice has not been recorded yet'];
+}
+async function askType(){
+  let first=true;
+  while(true){
+    const st=await ai(first?"What type of journal would you like to create?":"Sure. Here are the journal types again. Pick the one that fits.");
+    first=false;
+    const v=await ask(st,typeCards(),(w,done)=>{
+      w.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{b.classList.add('sel');done(b.dataset.v)});
+      const m=w.querySelector('[data-more]'),box=w.querySelector('[data-morebox]');
+      m.onclick=()=>{box.hidden=!box.hidden;m.textContent=box.hidden?'Show more journal types':'Show fewer journal types';scroll()};
+    },true);
+    if(v!=='unsure'){user(v,{key:'type'});return v}
+    user("I'm not sure which type to use");
+    const st2=await ai("No problem. Tell me what you're trying to do, and I'll suggest the appropriate journal type.");
+    const desc=await ask(st2,'<textarea class="field" placeholder="For example: We received the service this month, but the supplier invoice hasn\'t arrived yet." aria-label="Describe what you are trying to do"></textarea><div class="btn-row"><button type="button" class="btn primary" disabled>Suggest a journal type</button><button type="button" class="btn ghost" data-ex>Use the example</button></div>',
+      (w,done)=>{const ta=w.querySelector('textarea'),b=w.querySelector('.btn.primary');
+        ta.oninput=()=>b.disabled=!ta.value.trim();
+        w.querySelector('[data-ex]').onclick=()=>{ta.value="We received the service this month, but the supplier invoice hasn't arrived yet.";b.disabled=false};
+        b.onclick=()=>ta.value.trim()&&done(ta.value.trim())});
+    user(desc);
+    const th=aiStatus('AI is thinking... analyzing your description');
+    await sleep(1500);
+    const [rec,why]=recommend(desc);
+    th.bubble.innerHTML='<span class="ctx">'+ICON.spark+' AI recommendation</span><br>Based on your description, this looks like '+article(rec)+' <b>'+rec+' Journal</b>.<div class="hint">I suggested this because '+why+'.</div>';
+    const pick=await ask(th,'<div class="btn-row"><button type="button" class="btn primary" data-v="use">Use '+rec+'</button><button type="button" class="btn ghost" data-v="other">Choose a different type</button></div>',
+      (w,done)=>w.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>done(b.dataset.v)));
+    if(pick==='use'){user('Use '+rec,{key:'type'});return rec}
+    user('Choose a different type');
+  }
+}
+
+async function generate(){
+  await ai(S.generatedOnce?"Got it. I'll regenerate the template with your change.":"Thanks. I have everything I need.");
+  const st=row('ai');
+  const card=attach(st,'<div class="card ai-card proc"><div class="card-h"><h3>'+ICON.spark+' Preparing your journal</h3></div><div class="card-b"><ul>'+
+    ['Analyzing your selections...','Identifying journal configuration...','Generating the appropriate posting template...'].map(t=>'<li><span class="dot"></span>'+t+'</li>').join('')+'</ul></div></div>');
+  for(const li of card.querySelectorAll('li')){
+    li.className='run';li.firstChild.outerHTML='<span class="spin"></span>';await sleep(850);
+    li.className='done';li.firstChild.outerHTML=doneMark();
+  }
+  await sleep(250);
+  const tot=money(S.amount);
+  attach(st,'<div class="card"><div class="card-h"><h3>'+doneMark()+'Journal template generated successfully.</h3><span class="pill grey">'+ICON.file+' Template</span></div><div class="card-b">'+
+    '<div class="tpl-name">'+esc(shortTemplate())+' Journal Template</div><div class="hint" style="margin:2px 0 12px">Document type SA, posting period '+period(S)+', Company Code '+esc(S.cc)+', '+esc(S.currency)+'. Supporting document '+esc(S.attach)+' linked.</div>'+
+    linesTable(S)+'<div class="totals"><div class="t"><span>Total Debit: <b>'+tot+'</b></span><span>Total Credit: <b>'+tot+'</b></span></div><span class="pill green">Balanced ✓</span></div><div class="btn-row" style="margin-top:12px">'+PDF_BTN+'</div></div></div>').querySelector('[data-pdf]').onclick=()=>downloadPDF(Object.assign({},S),statusOf()[0]);
+  S.generatedOnce=true;S.templateOk=true;sync();
+}
+
+async function documents(){
+  const st=await ai("Do you have supporting documents for this journal?");
+  const sample=(S.type||'journal').toLowerCase()+'_support.pdf';
+  const res=await ask(st,
+    '<p class="upl-label">Document type</p>'+chipsHTML(['Invoice','Calculation Spreadsheet','Supporting Document','Approval Evidence'])+
+    '<div class="drop" tabindex="0" role="button" style="margin-top:10px" aria-label="Upload a file"><div class="ic">'+ICON.upload+'</div><b>Drag and drop a file here</b><small>or click to browse. PDF, Excel or Word up to 25 MB</small><input type="file" hidden accept=".pdf,.xlsx,.xls,.csv,.docx,.doc,.png,.jpg"></div>'+
+    '<div class="samples">Try a sample file: <button type="button" class="chip" data-f="'+sample+'">'+ICON.file+' '+sample+'</button><button type="button" class="chip" data-f="calculation_sheet.xlsx">'+ICON.file+' calculation_sheet.xlsx</button></div>',
+    (w,done)=>{
+      let cat='Supporting Document';
+      const cats=w.querySelectorAll('.chips .chip');
+      cats.forEach(c=>{if(c.dataset.v===cat)c.classList.add('sel');c.onclick=()=>{cats.forEach(x=>x.classList.remove('sel'));c.classList.add('sel');cat=c.dataset.v}});
+      const d=w.querySelector('.drop'),fi=w.querySelector('input[type=file]');
+      d.onclick=()=>fi.click();d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fi.click()}};
+      fi.onchange=()=>fi.files[0]&&done({name:fi.files[0].name,cat});
+      ['dragenter','dragover'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.add('over')}));
+      ['dragleave','drop'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.remove('over')}));
+      d.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)done({name:f.name,cat})});
+      w.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{b.classList.add('sel');done({name:b.dataset.f,cat:b.dataset.f.endsWith('xlsx')?'Calculation Spreadsheet':cat})});
+    });
+  user('<span class="file-chip">'+ICON.file+' '+esc(res.name)+'</span>',{raw:true,key:'attach'});
+  const s=aiNow('<div class="status-line"><div class="spin"></div><span class="thinking">Uploading '+esc(res.name)+'...</span></div><div class="progress"><i></i></div>');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>s.bubble.querySelector('.progress i').style.width='100%'));
+  await sleep(1100);
+  s.bubble.className='bubble ok';
+  s.bubble.innerHTML='<div class="status-line">'+doneMark()+'<span>✓ <b>'+esc(res.name)+'</b> uploaded</span></div><div class="hint">Document securely stored in Document Management Service. Tagged as '+esc(res.cat)+'.</div>';
+  S.attachCat=res.cat;set('attach',res.name);
+}
+
+function summaryCard(){
+  const ek=extraKey();
+  const keys=K(['system','country','cc','type','date','currency','amount','costcenter']).concat(ek?[ek]:[]).concat(['template','attach']);
+  return '<div class="card ai-card"><div class="card-h"><h3>'+ICON.file+' Journal summary</h3><span class="pill green">Balanced ✓</span></div><div class="card-b">'+
+    '<div class="sum-grid">'+keys.map(k=>'<div class="kv"><small>'+(k==='attach'?'Supporting Document':LABEL[k])+'</small><span>'+esc(dispOf(k,S))+'</span></div>').join('')+'</div>'+
+    '<div class="jlines"><div class="hint" style="margin:0 0 4px">Journal</div>'+
+    linesFor(S).map(l=>'<div class="jl"><span>'+esc(l.desc)+'</span><b><em>'+(l.dr!=null?'Debit':'Credit')+'</em>'+money(l.dr!=null?l.dr:l.cr)+'</b></div>').join('')+
+    '</div><div class="hint" style="margin-top:10px">Reason: '+esc(S.reason)+'</div></div></div>';
+}
+function riskChecks(){
+  const r=[],big={INR:5000000,USD:60000,EUR:55000,GBP:48000,CHF:55000}[S.currency]||60000;
+  if(!S.reason||S.reason.length<45)r.push(['reason','Short or general reasons are one of the most common reasons journals are sent back. Say what happened, why, and which period it relates to.']);
+  if(S.amount>=big)r.push(['attach','Journals of '+money(big)+' or more are usually questioned unless a calculation or approval evidence is attached.']);
+  if(S.amount%10000===0)r.push(['amount','Round-number amounts are often read as estimates, and approvers usually ask for the calculation behind them.']);
+  if(S.date&&S.date<'2026-09-01')r.push(['date','Postings dated in a previous period are frequently questioned. Explain why the entry belongs to that period.']);
+  if(S.attachCat==='Supporting Document')r.push(['attach','Journals with a specific invoice or calculation attached tend to be approved faster than those with a general supporting document.']);
+  const tip={Accrual:'Accruals without a supplier, PO or contract reference are commonly sent back.',Adjustment:'Adjustments that do not reference the original document are commonly sent back.',Reclassification:'Reclassifications without a reference to the original posting are commonly sent back.',Intercompany:'Intercompany entries are often rejected when the partner entity has not confirmed the amount.',Payroll:'Payroll journals are often returned when totals do not match the payroll register.',Revenue:'Revenue entries without a customer or contract reference are commonly questioned.',Purchase:'Purchases posted directly to the ledger instead of through a PO are often questioned.',Closing:'Closing entries are often returned when the period-close checklist is not attached.',Opening:'Opening balances are usually rejected without a reconciled trial balance.',Prepayment:'Prepayments without a release schedule are commonly sent back.',Recurring:'Recurring entries are often questioned when no end date or contract is referenced.',Allocation:'Allocations are commonly returned when the allocation basis is not explained.',Reversal:'Reversals are often questioned when the reason for reversing is unclear.'}[S.type];
+  if(tip)r.push(['reason',tip]);
+  return r;
+}
+function riskCard(r){
+  const fix={reason:'Update reason',attach:'Change document',amount:'Check amount',date:'Check date'};
+  return '<div class="card risk"><div class="card-h"><h3>'+ICON.spark+' AI check before approval</h3><span class="pill amber">'+r.length+' '+(r.length===1?'point':'points')+' to consider</span></div><div class="card-b">'+
+    '<p class="hint" style="margin:0 0 8px">Based on past approval history, these are general reasons similar journals get sent back. They are warnings only, so you can still submit.</p>'+
+    '<ul class="checks">'+r.map(x=>'<li><span class="warn-mark">!</span><span style="flex:1">'+esc(x[1])+'</span><button type="button" class="edit-link risk-fix" data-k="'+x[0]+'">'+ICON.pencil+' '+fix[x[0]]+'</button></li>').join('')+'</ul></div></div>';
+}
+async function review(){
+  const st=await ai(S.stage==='changes'?"Here's the updated journal. Submit it again when you're ready.":"Your journal is ready. Here's a quick summary before I submit it for approval.");
+  attach(st,summaryCard());
+  const risks=riskChecks();
+  let at=st;
+  if(risks.length){
+    at=await ai("Before you share this for approval, here are a few things approvers have commonly questioned on similar journals.");
+    const rw=attach(at,riskCard(risks));
+    rw.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>editField(b.dataset.k));
+  }
+  const act=await ask(at,'<div class="btn-row"><button type="button" class="btn primary" data-v="submit">Submit for Approval</button><button type="button" class="btn ghost" data-v="edit">Edit Details</button>'+PDF_BTN+'</div>',
+    (w,done)=>{w.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>done(b.dataset.v));w.querySelector('[data-pdf]').onclick=()=>downloadPDF(Object.assign({},S),statusOf()[0])});
+  if(act==='submit'){user('Submit for Approval');await submit();return}
+  user('Edit Details');
+  const st2=await ai('Sure. What would you like to change?<div class="hint">Tip: you can also use Change under any of your answers, or the pencil in the Journal Summary.</div>');
+  const ek=extraKey();
+  const keys=K(['system','country','cc','type','date','currency','amount','costcenter']).concat(ek?[ek]:[]).concat(['reason','attach']);
+  const labels=keys.map(k=>k==='attach'?'Supporting document':LABEL[k]);
+  const what=await ask(st2,chipsHTML(labels.concat(['Start over'])),bindChips,true);
+  user(what);
+  if(what==='Start over'){restart();return}
+  editField(keys[labels.indexOf(what)],false);
+}
+
+/* ---------- approval ---------- */
+function apCardHTML(){
+  const n=(k,t,ic)=>'<div class="node" data-n="'+k+'" data-ic="'+ic+'"><div class="n-ic"></div><div><b>'+t+'</b><small></small></div></div>';
+  const a='<div class="arrow">'+ICON.down+'</div>';
+  const li=k=>'<li data-t="'+k+'"><span class="d"></span><span class="tl-l"></span><small></small></li>';
+  return '<div class="card"><div class="card-h"><h3>Approval workflow</h3><span class="pill amber" data-pill></span></div><div class="card-b"><div class="approval"><div class="flow">'+
+    n('creator','Journal Creator','user')+a+n('manager','Finance Manager','user')+a+n('posting','SAP Posting','db')+'</div>'+
+    '<ul class="timeline">'+li('created')+li('submitted')+li('manager')+li('posting')+'</ul></div>'+
+    '</div></div>';
+}
+function setNode(c,k,state,sub){
+  const n=c.querySelector('[data-n="'+k+'"]');n.className='node '+state;
+  n.querySelector('.n-ic').innerHTML=state==='done'?'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>':state==='current'?ICON.clock:state==='bad'?ICON.x:ICON[n.dataset.ic];
+  n.querySelector('small').textContent=sub;
+}
+function setTl(c,k,state,label,sub){
+  const li=c.querySelector('[data-t="'+k+'"]');li.className=state;
+  li.querySelector('.d').innerHTML=state==='done'?ICON.check:state==='bad'?ICON.x:'';
+  li.querySelector('.tl-l').textContent=label;li.querySelector('small').textContent=sub;
+}
+function updateAp(){
+  const c=S.apCard;if(!c)return;
+  const st=S.stage,H=S.history.filter(h=>h.sub===S.subN);
+  const m=H.find(h=>h.role==='manager');
+  const word=h=>h.action==='approve'?'Approved':h.action==='changes'?'Sent back':'Rejected';
+  const ns=(h,cur)=>h?(h.action==='approve'?'done':'bad'):st===cur?'current':'';
+  const ts=(h,cur)=>h?(h.action==='approve'?'done':'bad'):st===cur?'pending':'';
+  const detail=(h,p)=>word(h)+' by '+p+', '+h.time+(h.comment?'. “'+h.comment+'”':'');
+  setNode(c,'creator','done','You, submitted '+S.subTime);
+  setNode(c,'manager',ns(m,'manager'),m?word(m)+' '+m.time:'Priya Raman');
+  setNode(c,'posting',st==='posted'?'done':(st==='approved'||st==='posting')?'current':'',st==='posted'?'Document 1900045678':'S/4HANA, Company Code '+S.cc);
+  setTl(c,'created','done','Created',S.createdTime);
+  setTl(c,'submitted','done','Submitted',S.subTime);
+  setTl(c,'manager',ts(m,'manager'),st==='manager'?'Manager Approval - Pending':'Manager Approval',m?detail(m,'Priya Raman'):st==='manager'?'Assigned to Priya Raman':'Waiting');
+  setTl(c,'posting',st==='posted'?'done':(st==='approved'||st==='posting')?'pending':'',st==='posted'?'SAP Posting':(st==='approved'||st==='posting')?'SAP Posting - In progress':'SAP Posting',st==='posted'?'Posted automatically as document 1900045678, '+S.postTime:(st==='approved'||st==='posting')?'Posting automatically after approval':'Waiting for approval');
+  const P={manager:['Pending Finance Manager Approval','amber pulse'],approved:['Approved, posting to SAP','green'],posting:['Approved, posting to SAP','green'],posted:['Posted','green'],changes:['Changes requested','amber'],rejected:['Rejected','red']}[st]||['','grey'];
+  const pill=c.querySelector('[data-pill]');pill.className='pill '+P[1];pill.textContent=P[0];
+}
+async function submit(){
+  S.subN++;S.submitted=true;S.stage='manager';
+  S.createdTime=S.createdTime||clock();S.subTime=clock();
+  sync();
+  const st=await ai("Based on the journal details, I've identified the required approval workflow.<div class=\"hint\">"+esc(S.type)+" journals of "+money(S.amount)+" in Company Code "+esc(S.cc)+" need Finance Manager approval before posting.</div>");
+  S.apCard=attach(st,apCardHTML());
+  updateAp();
+  toast('Sent to Priya Raman for approval.');
+}
+async function simulate(){
+  if(S.stage==='manager')approverAct('manager','approve','Reviewed, looks fine.');
+}
+function approverAct(role,action,comment){
+  const p=PERSONAS[role];
+  S.history.push({sub:S.subN,role,name:p.name,action,comment,time:clock()});
+  if(action==='approve')S.stage='approved';
+  else{S.stage=action==='changes'?'changes':'rejected';if(action==='changes')S.submitted=false}
+  updateAp();sync();
+  creatorReact(role,action,comment).catch(onErr);
+}
+async function creatorReact(role,action,comment){
+  const p=PERSONAS[role],q=comment?'<div class="quote">“'+esc(comment)+'”</div>':'';
+  if(action==='approve'){
+    aiNow('<div class="status-line">'+doneMark()+'<b>'+p.title+' Approved ✓</b></div><div class="hint">'+p.name+'</div>'+q,'ok');
+    if(S.stage==='approved'){
+      await ai("All required approvals are complete. I'm posting the journal to SAP S/4HANA now.",{wait:500});
+      await post();
+    }
+  }else if(action==='changes'){
+    await ai('<b>'+p.name+'</b> ('+p.title+') sent this journal back for changes.'+q+'Update anything using <b>Change</b> under your answers or the pencil in the summary, then submit again.',{cls:'warnb'});
+    await advance();
+  }else{
+    const st=await ai('<b>'+p.name+'</b> ('+p.title+') rejected this journal.'+q+'It is now closed and will not be posted.',{cls:'error'});
+    attach(st,'<div class="btn-row"><button type="button" class="btn ghost">Create Another Journal</button></div>').querySelector('button').onclick=restart;
+  }
+}
+async function post(){
+  S.stage='posting';updateAp();sync();
+  const s=aiStatus('Connecting to SAP S/4HANA...');
+  await sleep(1100);s.bubble.querySelector('.thinking').textContent='Posting journal...';
+  await sleep(1300);s.bubble.remove();
+  S.postTime=clock();S.stage='posted';updateAp();sync();
+  const kv=(k,v)=>'<div class="kv"><small>'+k+'</small><span>'+v+'</span></div>';
+  attach(s,'<div class="card success"><div class="big"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>Journal Successfully Posted ✓</h2><p>'+esc(shortTemplate())+', '+money(S.amount)+'</p>'+
+    '<div class="docno">'+kv('SAP Document Number','1900045678')+kv('Company Code',esc(S.cc))+kv('Fiscal Year / Period','2026 / '+period(S).slice(0,2))+kv('Status','<span class="pill green">Posted</span>')+'</div></div>');
+  const st=await ai("Done! Your journal has been successfully posted. I've also linked the supporting documentation and retained the complete approval history for audit purposes.",{wait:900});
+  const w=attach(st,'<div class="btn-row"><button type="button" class="btn solid" data-a="view">View Journal</button><button type="button" class="btn ghost" data-a="new">Create Another Journal</button></div>');
+  w.querySelector('[data-a=view]').onclick=viewJournal;w.querySelector('[data-a=new]').onclick=restart;
+}
+function historyTimeline(j,sub){
+  const H=j.history||[];
+  const w=h=>h.action==='approve'?'approved':h.action==='changes'?'sent it back':'rejected';
+  return '<ul class="timeline"><li class="done"><span class="d">'+ICON.check+'</span><span class="tl-l">Submitted by '+esc(j.by)+'</span><small>'+esc(sub)+'</small></li>'+
+    H.map(h=>'<li class="'+(h.action==='approve'?'done':'bad')+'"><span class="d">'+(h.action==='approve'?ICON.check:ICON.x)+'</span><span class="tl-l">'+esc(h.name)+' ('+PERSONAS[h.role].title+') '+w(h)+'</span><small>'+esc(h.time)+(h.comment?'. “'+esc(h.comment)+'”':'')+'</small></li>').join('')+'</ul>';
+}
+function viewJournal(){
+  const kv=(k,v)=>'<div class="kv"><small>'+k+'</small><span>'+esc(v)+'</span></div>';
+  const ek=extraKey();
+  $('#dlgTitle').textContent='SAP document 1900045678';
+  $('#dlgBody').innerHTML='<div class="sum-grid">'+K(['system','country','cc','type','date','currency','amount','costcenter']).concat(ek?[ek]:[]).map(k=>kv(LABEL[k],dispOf(k,S))).join('')+kv('Fiscal Year / Period','2026 / '+period(S).slice(0,2))+kv('Document Type','SA (G/L account document)')+kv('Template',shortTemplate())+'</div>'+
+    '<div><h4>Journal lines</h4>'+linesTable(S)+'</div><div><h4>Reason</h4>'+esc(S.reason)+'</div>'+
+    '<div><h4>Supporting documents</h4><span class="file-chip">'+ICON.file+' '+esc(S.attach)+'</span> <span class="hint">('+esc(S.attachCat)+', stored in Document Management Service)</span></div>'+
+    '<div><h4>Approval history</h4>'+historyTimeline(Object.assign({},S,{by:'Anika Kumar (you)'}),S.createdTime).replace('</ul>','<li class="done"><span class="d">'+ICON.check+'</span><span class="tl-l">Posted to SAP S/4HANA</span><small>Document 1900045678, '+esc(S.postTime)+'</small></li></ul>')+'</div>';
+  $('#dlgBody').insertAdjacentHTML('beforeend','<div>'+PDF_BTN+'</div>');
+  $('#dlgBody [data-pdf]').onclick=()=>downloadPDF(Object.assign({},S,{id:'SAP 1900045678',history:S.history.filter(h=>h.sub===S.subN)}),'Posted');
+  $('#dlg').showModal();
+}
+
+/* ---------- approver view ---------- */
+function mineItem(){
+  if(!S.subN)return null;
+  return Object.assign({},S,{id:'JE-2026-0921',by:'Anika Kumar',age:'Just now',mine:true,role:S.stage,history:S.history.filter(h=>h.sub===S.subN),
+    note:'This amount is about 8% higher than the average of the last 3 '+S.type.toLowerCase()+' journals on cost center '+S.costcenter+'.'});
+}
+function itemState(i){
+  if(i.mine)return S.stage==='manager'?'pending':['approved','posting','posted'].includes(S.stage)?'approved':S.stage;
+  return i.state;
+}
+function allItems(){return [mineItem()].concat(MOCK).filter(Boolean)}
+function pendingFor(p){return allItems().filter(i=>itemState(i)==='pending'&&i.role===p)}
+function doneFor(p){return allItems().filter(i=>(i.history||[]).some(h=>h.role===p)&&!(itemState(i)==='pending'&&i.role===p))}
+function statePill(i){
+  const s=itemState(i);
+  if(s==='pending')return '<span class="pill amber">Awaiting review</span>';
+  return {approved:'<span class="pill green">Approved</span>',changes:'<span class="pill amber">Sent back</span>',rejected:'<span class="pill red">Rejected</span>'}[s]||'';
+}
+function renderApprover(){
+  const p=PERSONAS[persona];
+  const pend=pendingFor(persona),done=doneFor(persona);void p;
+  if(!selId||!allItems().some(i=>i.id===selId))selId=(pend[0]||done[0]||{}).id||null;
+  const item=i=>'<button type="button" class="inbox-item'+(i.id===selId?' sel':'')+'" data-id="'+i.id+'"><div class="ii-top"><span>'+esc(HAS_SYSTEM?i.system:i.country)+', '+esc(i.type)+(i.mine&&itemState(i)==='pending'?'<span class="new">New</span>':'')+'</span><span class="amt">'+money(i.amount,i.currency)+'</span></div><div class="ii-sub"><span>'+esc(i.by)+', '+esc(i.age)+'</span>'+statePill(i)+'</div></button>';
+  $('#inboxList').innerHTML='<div class="sec-label">Waiting for you ('+pend.length+')</div>'+(pend.length?pend.map(item).join(''):'<div class="inbox-empty">Nothing waiting for you.</div>')+
+    (done.length?'<div class="sec-label">Recently reviewed</div>'+done.map(item).join(''):'');
+  $('#inboxList').querySelectorAll('.inbox-item').forEach(b=>b.onclick=()=>{selId=b.dataset.id;renderApprover()});
+  renderDetail(allItems().find(i=>i.id===selId));
+}
+function insights(i){
+  const out=[['ok','Debit and credit balance at '+money(i.amount,i.currency)],
+    i.attach?['ok','Supporting document attached: '+i.attach]:['warn','No supporting document attached'],
+    ['ok','Posting date '+fmtDate(i.date)+' falls in an open period']];
+  if(i.type==='Accrual'&&i.reversal)out.push(['ok','Auto-reversal is set for '+fmtDate(i.reversal)]);
+  if(i.note)out.push(['warn',i.note]);
+  return out;
+}
+function renderDetail(i){
+  const d=$('#detail');
+  if(!i){d.innerHTML='<div class="empty-state"><div class="ic">'+ICON.inbox+'</div><h3 style="margin:0 0 4px;color:var(--ink)">You\'re all caught up</h3>Journals submitted for your approval will appear here.</div>';return}
+  const s=itemState(i),myTurn=s==='pending'&&i.role===persona,ek=extraKey(i),p=PERSONAS[persona];
+  const kvs=K(['system','country','cc','type','date','currency','costcenter']).concat(ek&&i[ek]!=null?[ek]:[]);
+  const kv=(k,v)=>'<div class="kv"><small>'+k+'</small><span>'+esc(v)+'</span></div>';
+  const ins=insights(i),warns=ins.filter(x=>x[0]==='warn').length;
+  const nextStep='it is posted to SAP S/4HANA automatically and '+esc(i.by.split(' ')[0])+' is notified';
+  d.innerHTML=
+    '<div class="d-head"><div><h2>'+esc(shortTemplate(i))+'</h2><p>'+esc(i.id)+', submitted by '+esc(i.by)+', '+esc(i.age)+'</p><div style="margin-top:8px">'+statePill(i)+'</div></div><div><div class="d-amt">'+money(i.amount,i.currency)+'</div><div class="hint" style="text-align:right">Single approval required</div></div></div>'+
+    '<div class="d-body">'+
+      '<div class="card ai-card"><div class="card-h"><h3>'+ICON.spark+' AI review</h3><span class="pill '+(warns?'amber':'green')+'">'+(warns?warns+' point to check':'No issues found')+'</span></div><div class="card-b">'+
+        '<p class="ai-sum">'+esc(i.by)+' is asking to post '+article(i.type)+' '+esc(i.type.toLowerCase())+' journal of <b>'+money(i.amount,i.currency)+'</b> for '+esc(CC_NAMES[i.cc])+'. '+(warns?'It looks reasonable to approve; one point is worth a quick look.':'Everything checks out.')+'</p>'+
+        '<ul class="checks">'+ins.map(x=>'<li>'+(x[0]==='ok'?doneMark():'<span class="warn-mark">!</span>')+'<span>'+esc(x[1])+'</span></li>').join('')+'</ul>'+
+        '<div class="ask"><button type="button" class="chip" data-q="why">Why is this needed?</button><button type="button" class="chip" data-q="cmp">Compare with last month</button><button type="button" class="chip" data-q="next">What happens if I approve?</button></div><div data-ans></div>'+
+      '</div></div>'+
+      '<div><h4>Journal details</h4><div class="sum-grid">'+kvs.map(k=>kv(LABEL[k],dispOf(k,i))).join('')+'</div></div>'+
+      '<div><h4 style="display:flex;justify-content:space-between;align-items:center;gap:8px">Journal lines '+PDF_BTN+'</h4>'+linesTable(i)+'</div>'+
+      '<div><h4>Reason</h4>'+esc(i.reason)+'</div>'+
+      '<div><h4>Supporting document</h4><span class="file-chip">'+ICON.file+' <b>'+esc(i.attach||'None')+'</b></span> <span class="hint">Stored in Document Management Service</span></div>'+
+      '<div><h4>Approval trail</h4>'+historyTimeline(i,i.age)+'</div>'+
+    '</div>'+
+    (myTurn?'<div class="decision"><h4>Your decision as '+p.title+'</h4><textarea class="field" placeholder="Add a comment (required if you send it back or reject it)" aria-label="Comment"></textarea><div class="hint err" data-err hidden>Add a comment so '+esc(i.by.split(' ')[0])+' knows what to change.</div>'+
+      '<div class="btn-row"><button type="button" class="btn approve" data-a="approve">'+'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg> Approve</button><button type="button" class="btn ghost" data-a="changes">Send back for changes</button><button type="button" class="btn danger" data-a="reject">Reject</button></div></div>'
+     :'<div class="result">'+statePill(i)+'<span class="hint" style="margin:0">'+(i.mine&&s==='approved'?(S.stage==='posted'?'Approved and posted to SAP as document 1900045678.':'Approved. Posting to SAP automatically...'):'No action needed from you.')+'</span>'+(i.mine&&s==='approved'?'<button type="button" class="btn solid sm" data-gocreator style="margin-left:auto">View in Journal Creator</button>':'')+'</div>');
+  const gc=d.querySelector('[data-gocreator]');if(gc)gc.onclick=()=>setView('creator');
+  d.querySelector('[data-pdf]').onclick=()=>downloadPDF(i,{pending:'Awaiting approval',approved:'Approved',changes:'Sent back',rejected:'Rejected'}[s]||s);
+  const ans=d.querySelector('[data-ans]');
+  const A={why:esc(i.by.split(' ')[0])+' explains: “'+esc(i.reason)+'”',
+    cmp:'Over the last 3 months, '+esc(HAS_SYSTEM?i.system:CC_NAMES[i.cc])+' posted 2 similar '+esc(i.type.toLowerCase())+' journals on this cost center, averaging '+money(Math.round(i.amount*0.92),i.currency)+'. This one is about 8% higher, which is within the usual month-end range.',
+    next:'If you approve, '+nextStep+'.'};
+  d.querySelectorAll('[data-q]').forEach(b=>b.onclick=async()=>{
+    ans.innerHTML='<div class="ask-ans"><div class="status-line"><div class="spin"></div><span class="thinking">Thinking...</span></div></div>';
+    await new Promise(r=>setTimeout(r,reduced?50:700));
+    ans.innerHTML='<div class="ask-ans">'+A[b.dataset.q]+'</div>';
+  });
+  if(myTurn){
+    const ta=d.querySelector('textarea'),err=d.querySelector('[data-err]');
+    d.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{
+      const a=b.dataset.a,cm=ta.value.trim();
+      if(a!=='approve'&&!cm){err.hidden=false;ta.focus();return}
+      decide(i,a,cm);
+    });
+  }
+}
+function decide(i,a,cm){
+  const p=PERSONAS[persona];
+  if(i.mine)approverAct(persona,a,cm);
+  else{
+    const m=MOCK.find(x=>x.id===i.id);
+    m.history.push({role:persona,name:p.name,action:a,comment:cm,time:clock()});
+    if(a==='approve')m.state='approved';
+    else m.state=a==='changes'?'changes':'rejected';
+  }
+  const first=i.by.split(' ')[0];
+  toast(a==='approve'?(i.mine?'Approved. The journal is being posted to SAP automatically.':'Approved and sent for posting to SAP.'):a==='changes'?'Sent back to '+first+' with your comment.':'Rejected. '+first+' has been notified.');
+  const nx=pendingFor(persona)[0];selId=(i.mine&&a==='approve')||!nx?i.id:nx.id;
+  renderApprover();
+}
+function setView(v){
+  view=v;
+  $('#creatorView').hidden=v!=='creator';$('#approverView').hidden=v!=='approver';
+  document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===v)));
+  $('#newJournal').hidden=v!=='creator';
+  $('#subtitle').textContent=v==='creator'?'Create and submit journal entries with step-by-step AI assistance':'Review and approve journal entries with AI assistance';
+  if(v==='approver'){
+    if(S.stage==='manager')selId='JE-2026-0921';
+    renderApprover();
+  }else{
+    requestAnimationFrame(()=>{chat.scrollTop=chat.scrollHeight;scroll()});
+    if(S.stage==='posted')toast('Approved by Priya Raman and posted to SAP automatically.');else if(S.stage==='approved'||S.stage==='posting')toast('Approved by Priya Raman. Posting to SAP now.');
+  }
+  window.scrollTo({top:0});
+}
+
+/* ---------- init ---------- */
+function restart(){
+  runId++;
+  S={prev:{},history:[],subN:0,clock:0};
+  MOCK=JSON.parse(JSON.stringify(MOCK0));
+  selId=null;chat.innerHTML='';
+  const dlg=$('#dlg');if(dlg.open)dlg.close();
+  renderFields();sync();
+  if(view!=='creator')setView('creator');
+  advance().catch(onErr);
+}
+$('#ccList').innerHTML=CCS.map(c=>'<option value="'+c[0]+' - '+c[1]+'"></option>').join('');
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>setView(b.dataset.view));
+$('#newJournal').onclick=restart;
+restart();
+})();
+</script>
+</body>
+</html>
